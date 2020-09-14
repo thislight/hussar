@@ -209,9 +209,30 @@ local function wait_for_headers(connection)
 end
 
 local function read_fixed_body(connection, buffer, length)
+    local required_length = length
+    while required_length > 0 do
+        local data = connection:read()
+        required_length = required_length - #data
+        table.insert(buffer, data)
+    end
 end
 
 local function read_chunked_body(connection, buffer)
+    local chunk_len_str = ""
+    local chunk_len
+    while not string.match(chunk_len_str, "\r\n") do
+        local data = connection:read()
+        chunk_len_str = chunk_len_str..data
+    end
+    local chunk_len_str, body_prefix = string.match(chunk_len_str, "(.*)\r\n(.*)")
+    chunk_len = tonumber(chunk_len_str, 16)
+    table.insert(buffer, body_prefix)
+    chunk_len = chunk_len - #body_prefix
+    while chunk_len > 0 do
+        local data = connection:read()
+        chunk_len = chunk_len - #data
+        table.insert(buffer, data)
+    end
 end
 
 local function write_error_on(connection, status_code, body)
@@ -236,7 +257,7 @@ local function wait_for_request(connection)
     elseif #h_content_length > 0 then
         local read_length
         if utils.any(utils.map(function(v) return v ~= h_content_length end, h_content_length)) then
-            write_error_on(connection, 404)
+            write_error_on(connection, 400)
             return -1, "multiple but unequal content-length "
         else
             read_length = tonumber(h_content_length[0])
@@ -247,6 +268,9 @@ local function wait_for_request(connection)
         end
         read_fixed_body(connection, body_buffer, read_length)
     elseif #h_transfer_encoding > 0 then
+        if string.lower(h_transfer_encoding[#h_transfer_encoding]) == "chunked" then
+            read_chunked_body(connection, body_buffer)
+        end
     else
     end
 end
