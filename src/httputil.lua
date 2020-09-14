@@ -233,6 +233,12 @@ local function read_chunked_body(connection, buffer)
         chunk_len = chunk_len - #data
         table.insert(buffer, data)
     end
+    if not string.match(buffer[#buffer], "\r\n") then
+        local endmark = connection:read()
+        if endmark ~= "\r\n" then
+            return -1, "chunk do not end correctly"
+        end
+    end
 end
 
 local function write_error_on(connection, status_code, body)
@@ -269,7 +275,11 @@ local function wait_for_request(connection)
         read_fixed_body(connection, body_buffer, read_length)
     elseif #h_transfer_encoding > 0 then
         if string.lower(h_transfer_encoding[#h_transfer_encoding]) == "chunked" then
-            read_chunked_body(connection, body_buffer)
+            local stat, e = read_chunked_body(connection, body_buffer)
+            if stat then
+                write_error_on(connection, 400)
+                return stat, e
+            end
         end
     else
     end
