@@ -200,6 +200,10 @@ local function wait_for_headers(connection)
             local body_last_in_block = lphr.get_body(buffer, pret)
             if not httpdata.headers then
                 httpdata.headers = {}
+            else
+                if string.lower(headers.get_last_of(httpdata.headers, "Connection")) == "keep-alive" then
+                    connection:set_keep_alive(true)
+                end
             end
             return httpdata, body_last_in_block
         elseif pret == -1 then
