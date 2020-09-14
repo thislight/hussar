@@ -224,7 +224,8 @@ local function read_chunked_body(connection, buffer)
         local data = connection:read()
         chunk_len_str = chunk_len_str..data
     end
-    local chunk_len_str, body_prefix = string.match(chunk_len_str, "(.*)\r\n(.*)")
+    local body_prefix
+    chunk_len_str, body_prefix = string.match(chunk_len_str, "(.*)\r\n(.*)")
     chunk_len = tonumber(chunk_len_str, 16)
     table.insert(buffer, body_prefix)
     chunk_len = chunk_len - #body_prefix
