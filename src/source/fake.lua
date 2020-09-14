@@ -10,6 +10,7 @@ end
 
 function fake_connection:create()
     return self:clone_to {
+        flag_keep_alive = false,
         buffer_in = {},
         pos_in = 0,
         buffer_out = {},
@@ -33,6 +34,14 @@ end
 
 function fake_connection:write(value)
     table.insert(self.buffer_out, value)
+end
+
+function fake_connection:set_keep_alive(enable)
+    local old = self.flag_keep_alive
+    if enable ~= nil then
+        self.flag_keep_alive = enable
+    end
+    return old
 end
 --------
 
