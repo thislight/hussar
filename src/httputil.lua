@@ -290,6 +290,19 @@ local function wait_for_request(connection)
     end
 end
 
+local function respond(connection, response_t)
+    connection:write(build_response(response_t))
+    if not connection:set_keep_alive() then
+        connection:close()
+    end
+end
+
+local function respond_on(connection)
+    return function(response_t)
+        return respond(connection, response_t)
+    end
+end
+
 return {
     request = build_request,
     response = build_response,
@@ -301,4 +314,6 @@ return {
     wait_for_request = wait_for_request,
     read_fixed_body = read_fixed_body,
     read_chunked_body = read_chunked_body,
+    respond = respond,
+    respond_on = respond_on,
 }
