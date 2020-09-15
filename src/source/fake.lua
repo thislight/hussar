@@ -43,6 +43,13 @@ function fake_connection:set_keep_alive(enable)
     end
     return old
 end
+
+function fake_connection:is_keep_alive()
+    return self.flag_keep_alive
+end
+
+function fake_connection:is_alive()
+end
 --------
 
 local fake_source = {}
@@ -51,10 +58,7 @@ function fake_source:clone_to(new_t)
     return utils.table_deep_copy(self, new_t)
 end
 
-function fake_source:poll()
-end
-
-function fake_source:next()
+function fake_source:pull()
 end
 
 function fake_source:add_request(t)

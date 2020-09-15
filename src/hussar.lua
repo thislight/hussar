@@ -56,11 +56,57 @@ local function conn_hander(conn, pubframe, handler, error_thread)
     end
 end
 
-function hussar:accept_connection(conn)
+function hussar:accept_connection(conn, promised_endtime)
     local new_thread = coroutine.create(conn_hander)
-    table.insert(self.td, {conn, new_thread})
+    table.insert(self.td, {conn, new_thread, promised_endtime})
     coroutine.resume(new_thread, conn, self.pubframe, self.handler, self.error_thread)
     away.schedule_thread(new_thread)
+end
+
+local function hussar_thread(self)
+    while coroutine.yield() do
+        local curr_time = os.clock()
+        ---- Check Old Connections ----
+        do
+            local to_removes = {}
+            local insert = table.insert
+            local unpack = table.unpack
+            local costatus = coroutine.status
+            for i, D in ipairs(self.td) do
+                local conn, thread, promised_endtime = unpack(D)
+                if promised_endtime and promised_endtime >= curr_time then
+                    if conn:is_keep_alive() then
+                        D[3] = nil
+                    elseif conn:is_alive() then
+                        conn:write(httputil.response {
+                            status_code = 504,
+                            "Gateway Timeout."
+                        }) -- TODO: notify thread the connection is timeout, don't fail sliently
+                        conn:close()
+                    end
+                end
+                if (not conn:is_alive()) or (costatus(thread) == "dead") then
+                    insert(to_removes, i)
+                end
+            end
+            local remove = table.remove
+            for _, real_i in ipairs(to_removes) do
+                remove(self.td, real_i)
+            end
+        end
+        ---- Pull New Connections Back --
+        for _, S in ipairs(self.sources) do
+            local new_conns = S:pull()
+            for _, C in ipairs(new_conns) do
+                self:accept_connection(C)
+            end
+        end
+    end
+end
+
+function hussar:start_main_thread()
+    self.main_thread = coroutine.create(hussar_thread)
+    coroutine.resume(self.main_thread, self)
 end
 
 return hussar
