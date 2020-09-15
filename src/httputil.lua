@@ -287,7 +287,11 @@ local function wait_for_request(connection)
             end
         end
     else
+        write_error_on(connection, 400)
+        return -1, "could not read body because of missing transfer-encoding or content-length"
     end
+    httph[0] = table.concat(body_buffer)
+    return httph
 end
 
 local function respond(connection, response_t)
