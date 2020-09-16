@@ -19,6 +19,7 @@ function hussar:create()
         sources = {},
         td = {},
         pubframe = {},
+        timeout = 15,
         error_thread = new_error_thread(function(self)
             while true do
                 local signal = coroutine.yield()
@@ -64,6 +65,7 @@ function hussar:accept_connection(conn, promised_endtime)
 end
 
 local function hussar_thread(self)
+    local timeout = self.timeout
     while coroutine.yield() do
         local curr_time = os.clock()
         ---- Check Old Connections ----
@@ -98,7 +100,7 @@ local function hussar_thread(self)
         for _, S in ipairs(self.sources) do
             local new_conns = S:pull()
             for _, C in ipairs(new_conns) do
-                self:accept_connection(C)
+                self:accept_connection(C, curr_time+timeout)
             end
         end
     end
