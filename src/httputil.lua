@@ -1,5 +1,6 @@
 local utils = require "hussar.utils"
 local lphr = require "lphr.r2"
+local pathetic = require "pathetic"
 
 local function require_field(t, key)
     if t[key] == nil then
@@ -198,6 +199,7 @@ local function wait_for_headers(connection)
         pret, buffer, last_len, httpdata = lphr.parse_request(data, buffer, last_len)
         if pret > 0 then
             local body_last_in_block = lphr.get_body(buffer, pret)
+            httpdata.uri = pathetic:parse(httpdata.path)
             if not httpdata.headers then
                 httpdata.headers = {}
             else
