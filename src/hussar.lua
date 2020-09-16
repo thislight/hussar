@@ -36,8 +36,7 @@ function hussar:attach_source(source)
     table.insert(self.sources, source)
 end
 
-local function conn_hander(conn, pubframe, handler, error_thread)
-    local frame = {}
+local function conn_hander(conn, frame, pubframe, handler, error_thread)
     coroutine.yield() -- break point, only run handler after scheduled
     local stat, err = pcall(handler, conn, frame, pubframe)
     if not stat then
@@ -57,9 +56,10 @@ local function conn_hander(conn, pubframe, handler, error_thread)
 end
 
 function hussar:accept_connection(conn, promised_endtime)
+    local frame = {}
     local new_thread = coroutine.create(conn_hander)
-    table.insert(self.td, {conn, new_thread, promised_endtime})
-    coroutine.resume(new_thread, conn, self.pubframe, self.handler, self.error_thread)
+    table.insert(self.td, {conn, new_thread, promised_endtime, frame})
+    coroutine.resume(new_thread, conn, frame, self.pubframe, self.handler, self.error_thread)
     away.schedule_thread(new_thread)
 end
 
