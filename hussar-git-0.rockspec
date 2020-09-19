@@ -8,10 +8,11 @@ description = {
    license = "GPL-3",
 }
 dependencies = {
-   "lua 5.3, 5.4",
-   "away >=0.0.2, <1",
+   "lua >=5.3, <=5.4",
+   "away >=0.0.3-1, <1",
    "luapicohttpparser 0.2-0",
-   "pathetic >=1.0.2, <2"
+   "pathetic >=1.0.2, <2",
+   "powerlog 0.1"
 }
 build = {
    type = "builtin",
