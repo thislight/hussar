@@ -15,6 +15,7 @@ function fake_connection:create()
         pos_in = 0,
         buffer_out = {},
         pos_out = 0,
+        is_alive = true,
     }
 end
 
@@ -33,7 +34,11 @@ function fake_connection:read()
 end
 
 function fake_connection:write(value)
-    table.insert(self.buffer_out, value)
+    if self.is_alive then
+        table.insert(self.buffer_out, value)
+        return #value
+    end
+    return -1, 'connection closed'
 end
 
 function fake_connection:set_keep_alive(enable)
@@ -49,25 +54,64 @@ function fake_connection:is_keep_alive()
 end
 
 function fake_connection:is_alive()
+    return self.is_alive
+end
+
+function fake_connection:close()
+    self.is_alive = false
 end
 --------
 
-local fake_source = {}
+function fake_connection:server_close()
+    self.is_alive = false
+end
+
+function fake_connection:server_write(s)
+    table.insert(self.buffer_out, s)
+end
+
+function fake_connection:server_read()
+    local new_pos = self.pos_out + 1
+    if #self.buffer_out > new_pos then
+        self.pos_out = new_pos
+        return self.buffer_in[new_pos]
+    else
+        utils.hold_until(
+            function() return #self.buffer_in > new_pos end
+        )
+        return self:server_read()
+    end
+end
+
+function fake_connection:server_is_keep_alive()
+    return self:is_keep_alive()
+end
+
+local fake_source = {
+    new_connections = {},
+}
 
 function fake_source:clone_to(new_t)
-    return utils.table_deep_copy(self, new_t)
+    local object = utils.table_deep_copy(self, new_t)
+    object.new_connections = {}
 end
 
 function fake_source:pull()
+    local copy = table.pack(table.unpack(self.new_connections))
+    self.new_connections = {}
+    return copy
 end
 
 function fake_source:add_request(t)
+    local conn = fake_connection:create()
+    local response_s = httpbuild.response(t)
+    conn:server_write(response_s)
+    table.insert(self.new_connections, conn)
+    return conn
 end
 
 function fake_source:create()
-    return self:clone_to {
-        requests_queue = {},
-    }
+    return self:clone_to {}
 end
 
 return fake_source
