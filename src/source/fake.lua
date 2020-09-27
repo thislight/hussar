@@ -1,6 +1,6 @@
 local away = require "away"
-local utils = require "hussar.sutils"
-local httpbuild = require "hussar.httpbuild"
+local utils = require "hussar.utils"
+local httputil = require "hussar.httputil"
 
 local fake_connection = {}
 
@@ -94,6 +94,7 @@ local fake_source = {
 function fake_source:clone_to(new_t)
     local object = utils.table_deep_copy(self, new_t)
     object.new_connections = {}
+    return object
 end
 
 function fake_source:pull()
@@ -104,7 +105,7 @@ end
 
 function fake_source:add_request(t)
     local conn = fake_connection:create()
-    local response_s = httpbuild.response(t)
+    local response_s = httputil.response(t)
     conn:server_write(response_s)
     table.insert(self.new_connections, conn)
     return conn
