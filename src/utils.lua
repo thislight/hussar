@@ -17,7 +17,7 @@ local function yield_wakeback()
     }
 end
 
-local function hold_unitl(checkf)
+local function hold_until(checkf)
     local wakeback_thread = away.get_current_thread()
     local new_thread = coroutine.create(function(checkf, wakeback_thread)
         while true do
@@ -77,7 +77,7 @@ end
 return {
     table_deep_copy = table_deep_copy,
     yield_wakeback = yield_wakeback,
-    hold_unitl = hold_unitl,
+    hold_until = hold_until,
     map = map,
     gentable = gentable,
     itself = itself, 
