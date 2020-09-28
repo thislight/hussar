@@ -36,4 +36,20 @@ insulate("hussar.source.fake", function()
         end)
     end)
 
+    insulate("fake_connection", function()
+        local httputil = require "hussar.httputil"
+        local source = fake:create()
+        describe("read()", function()
+            it("can return correct infomation", function()
+                local conn = source:add_request {
+                    path = '/',
+                    method = 'GET'
+                }
+                local result = httputil.wait_for_headers(conn)
+                assert.are_not.same(result, -1)
+                assert.are.same(result.path, '/')
+                assert.are.same(result.method, 'GET')
+            end)
+        end)
+    end)
 end)
