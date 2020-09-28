@@ -103,6 +103,7 @@ local function build_request(t)
     if t.body ~= nil then
         table.insert(result_t, t.body)
     end
+    table.insert(result_t, '')
     return table.concat(result_t, "\r\n")
 end
 
