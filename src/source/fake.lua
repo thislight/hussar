@@ -20,6 +20,7 @@ function fake_connection:create()
 end
 
 ---- Standard APIs ----
+-- TODO: move to use of dataqueue
 function fake_connection:read()
     local new_pos = self.pos_in + 1
     if #self.buffer_in >= new_pos then
@@ -67,7 +68,7 @@ function fake_connection:server_close()
 end
 
 function fake_connection:server_write(s)
-    table.insert(self.buffer_out, s)
+    table.insert(self.buffer_in, s)
 end
 
 function fake_connection:server_read()
