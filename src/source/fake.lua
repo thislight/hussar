@@ -104,11 +104,16 @@ function fake_source:pull()
     return copy
 end
 
-function fake_source:add_request(t)
+function fake_source:new_connection()
     local conn = fake_connection:create()
+    table.insert(self.new_connections, conn)
+    return conn
+end
+
+function fake_source:add_request(t)
+    local conn = self:new_connection()
     local request_s = httputil.request(t)
     conn:server_write(request_s)
-    table.insert(self.new_connections, conn)
     return conn
 end
 
