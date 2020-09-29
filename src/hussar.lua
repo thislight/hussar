@@ -37,6 +37,9 @@ end
 
 function hussar:attach_source(source)
     table.insert(self.sources, source)
+    if source.prepare then
+        source:prepare(self)
+    end
 end
 
 local function conn_hander(conn, frame, pubframe, handler, error_thread)
