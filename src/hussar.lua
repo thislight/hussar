@@ -1,6 +1,7 @@
 local away = require "away"
 local httputil = require "hussar.httputil"
 local table_deep_copy = require("hussar.utils").table_deep_copy
+local powerlog = require "powerlog"
 
 local hussar = {}
 
@@ -20,6 +21,7 @@ function hussar:create()
         td = {},
         pubframe = {},
         timeout = 15,
+        logger = powerlog:create('hussar'),
         error_thread = new_error_thread(function(self)
             while true do
                 local signal = coroutine.yield()
@@ -64,6 +66,17 @@ function hussar:accept_connection(conn, promised_endtime)
     away.schedule_thread(new_thread)
 end
 
+function hussar:pull()
+    local result = {}
+    for _, source in ipairs(self.sources) do
+        if source.pull then
+            local new_conns = source:pull()
+            table.move(new_conns, 1, #new_conns, #result+1, result)
+        end
+    end
+    return result
+end
+
 local function hussar_thread(self)
     local timeout = self.timeout
     while coroutine.yield() do
@@ -97,11 +110,9 @@ local function hussar_thread(self)
             end
         end
         ---- Pull New Connections Back --
-        for _, S in ipairs(self.sources) do
-            local new_conns = S:pull()
-            for _, C in ipairs(new_conns) do
-                self:accept_connection(C, curr_time+timeout)
-            end
+        local promised_deadline = curr_time + timeout
+        for _, conn in ipairs(self:pull()) do
+            self:accept_connection(conn, promised_deadline)
         end
     end
 end
