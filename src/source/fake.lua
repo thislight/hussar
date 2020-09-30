@@ -73,7 +73,14 @@ function fake_connection:client_close()
 end
 
 function fake_connection:client_write(s)
-    table.insert(self.buffer_in, s)
+    if self.is_alive then
+        table.insert(self.buffer_in, s)
+    else
+        error({
+            t = 'closed',
+            r = self.closed_reason,
+        })
+    end
 end
 
 function fake_connection:client_read()
