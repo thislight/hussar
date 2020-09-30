@@ -90,6 +90,7 @@ end
 
 local function hussar_thread(self, self_thread)
     local timeout = self.timeout
+    local user_handler = self.handler
     while coroutine.yield {target_thread = self_thread} do
         local curr_time = os.clock() -- TODO: user-defined time provider
         ---- Check Old Connections ----
@@ -120,9 +121,8 @@ local function hussar_thread(self, self_thread)
                 remove(self.td, real_i)
             end
         end
-        ---- Pull New Connections Back --
+        ---- Pull New Connections Back ----
         local promised_deadline = curr_time + timeout
-        local user_handler = self.handler
         if user_handler then
             for _, conn in ipairs(self:pull()) do
                 self:start_connection_thread(conn, promised_deadline)
@@ -134,6 +134,10 @@ end
 function hussar:start_main_thread()
     self.main_thread = coroutine.create(hussar_thread)
     coroutine.resume(self.main_thread, self, self.main_thread)
+end
+
+function hussar:start()
+    hussar:start_main_thread()
 end
 
 return hussar
