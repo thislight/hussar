@@ -38,8 +38,12 @@ function fake_connection:write(value)
     if self.is_alive then
         table.insert(self.buffer_out, value)
         return #value
+    else
+        error({
+            t = 'closed',
+            r = self.closed_reason,
+        })
     end
-    return -1, 'connection closed'
 end
 
 function fake_connection:set_keep_alive(enable)
@@ -58,8 +62,9 @@ function fake_connection:is_alive()
     return self.is_alive
 end
 
-function fake_connection:close()
+function fake_connection:close(reason)
     self.is_alive = false
+    self.closed_reason = reason
 end
 --------
 
