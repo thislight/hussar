@@ -63,15 +63,15 @@ function fake_connection:close()
 end
 --------
 
-function fake_connection:server_close()
+function fake_connection:client_close()
     self.is_alive = false
 end
 
-function fake_connection:server_write(s)
+function fake_connection:client_write(s)
     table.insert(self.buffer_in, s)
 end
 
-function fake_connection:server_read()
+function fake_connection:client_read()
     local new_pos = self.pos_out + 1
     if #self.buffer_out > new_pos then
         self.pos_out = new_pos
@@ -84,7 +84,7 @@ function fake_connection:server_read()
     end
 end
 
-function fake_connection:server_is_keep_alive()
+function fake_connection:client_is_keep_alive()
     return self:is_keep_alive()
 end
 
