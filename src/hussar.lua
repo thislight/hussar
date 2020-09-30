@@ -23,9 +23,10 @@ function hussar:create()
         timeout = 15,
         logger = powerlog:create('hussar'),
         error_thread = new_error_thread(function(self)
+            local logger = self.logger:create("error_thread")
             while true do
                 local signal = coroutine.yield()
-                error(signal.err, 0)
+                logger:error("user thread error", nil, signal.err)
                 httputil.respond_on(signal.connection) {
                     status_code = 500,
                     "Server Internal Error"
@@ -61,12 +62,19 @@ local function conn_hander(conn, frame, pubframe, handler, error_thread)
     end
 end
 
-function hussar:accept_connection(conn, promised_endtime)
-    local frame = {}
+function hussar:start_connection_thread(conn, promised_endtime)
     local new_thread = coroutine.create(conn_hander)
-    table.insert(self.td, {conn, new_thread, promised_endtime, frame})
+    local descriptor = self:register_connection(conn, new_thread, promised_endtime)
+    local frame = descriptor[4]
     coroutine.resume(new_thread, conn, frame, self.pubframe, self.handler, self.error_thread)
     away.schedule_thread(new_thread)
+end
+
+function hussar:register_connection(conn, target_thread, promised_endtime)
+    local frame = {}
+    local descriptor = {conn, target_thread, promised_endtime, frame}
+    table.insert(self.td, descriptor)
+    return descriptor
 end
 
 function hussar:pull()
@@ -114,8 +122,11 @@ local function hussar_thread(self)
         end
         ---- Pull New Connections Back --
         local promised_deadline = curr_time + timeout
-        for _, conn in ipairs(self:pull()) do
-            self:accept_connection(conn, promised_deadline)
+        local user_handler = self.handler
+        if user_handler then
+            for _, conn in ipairs(self:pull()) do
+                self:start_connection_thread(conn, promised_deadline)
+            end
         end
     end
 end
