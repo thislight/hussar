@@ -88,10 +88,10 @@ function hussar:pull()
     return result
 end
 
-local function hussar_thread(self)
+local function hussar_thread(self, self_thread)
     local timeout = self.timeout
-    while coroutine.yield() do
-        local curr_time = os.clock()
+    while coroutine.yield {target_thread = self_thread} do
+        local curr_time = os.clock() -- TODO: user-defined time provider
         ---- Check Old Connections ----
         do
             local to_removes = {}
@@ -133,7 +133,7 @@ end
 
 function hussar:start_main_thread()
     self.main_thread = coroutine.create(hussar_thread)
-    coroutine.resume(self.main_thread, self)
+    coroutine.resume(self.main_thread, self, self.main_thread)
 end
 
 return hussar
