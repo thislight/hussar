@@ -99,8 +99,8 @@ local function hussar_thread(self)
                         conn:write(httputil.response {
                             status_code = 504,
                             "Gateway Timeout."
-                        }) -- TODO: notify thread the connection is timeout, don't fail sliently
-                        conn:close()
+                        })
+                        conn:close('timeout')
                     end
                 end
                 if (not conn:is_alive()) or (costatus(thread) == "dead") then
