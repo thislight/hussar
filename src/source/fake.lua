@@ -85,7 +85,7 @@ function fake_connection:client_read()
         utils.hold_until(
             function() return #self.buffer_in > new_pos end
         )
-        return self:server_read()
+        return self:client_read()
     end
 end
 
