@@ -125,7 +125,7 @@ end
 function fake_source:add_request(t)
     local conn = self:new_connection()
     local request_s = httputil.request(t)
-    conn:server_write(request_s)
+    conn:client_write(request_s)
     return conn
 end
 
