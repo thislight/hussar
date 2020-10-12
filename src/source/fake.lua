@@ -1,6 +1,7 @@
 local away = require "away"
 local utils = require "hussar.utils"
 local httputil = require "hussar.httputil"
+local Dataqueue = require "away.dataqueue"
 
 local fake_connection = {}
 
@@ -90,7 +91,7 @@ function fake_connection:client_read()
         return self.buffer_in[new_pos]
     else
         utils.hold_until(
-            function() return #self.buffer_in > new_pos end
+            function() return #self.buffer_out > new_pos end
         )
         return self:client_read()
     end
@@ -131,6 +132,9 @@ end
 
 function fake_source:create()
     return self:clone_to {}
+end
+
+function fake_source:prepare()
 end
 
 return fake_source

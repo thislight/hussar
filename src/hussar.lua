@@ -2,6 +2,7 @@ local away = require "away"
 local httputil = require "hussar.httputil"
 local table_deep_copy = require("hussar.utils").table_deep_copy
 local powerlog = require "powerlog"
+local utils = require "hussar.utils"
 
 local hussar = {}
 
@@ -16,7 +17,7 @@ local function new_error_thread(f, hussar_t)
 end
 
 function hussar:create()
-    return self:clone_to {
+    local r = self:clone_to {
         sources = {},
         td = {},
         pubframe = {},
@@ -34,6 +35,8 @@ function hussar:create()
             end
         end),
     }
+    r.logger.accept_level = 40
+    return r
 end
 
 function hussar:attach_source(source)
@@ -91,7 +94,11 @@ end
 local function hussar_thread(self, self_thread)
     local timeout = self.timeout
     local user_handler = self.handler
-    while coroutine.yield {target_thread = self_thread} do
+    local logger = self.logger
+    logger:debugf("main thread have been started")
+    while true do
+        utils.yield_wakeback()
+        logger:debugf("make sure wakeback")
         local curr_time = os.clock() -- TODO: user-defined time provider
         ---- Check Old Connections ----
         do
@@ -120,12 +127,18 @@ local function hussar_thread(self, self_thread)
             for _, real_i in ipairs(to_removes) do
                 remove(self.td, real_i)
             end
+            logger:debugf("%d connections have been removed", #to_removes)
         end
         ---- Pull New Connections Back ----
         local promised_deadline = curr_time + timeout
         if user_handler then
-            for _, conn in ipairs(self:pull()) do
+            logger:debugf("pulling new connections")
+            local new_connections = self:pull()
+            for _, conn in ipairs(new_connections) do
                 self:start_connection_thread(conn, promised_deadline)
+            end
+            if #new_connections > 0 then
+                logger:debugf("pulled %d new connection(s)", #new_connections)
             end
         end
     end
@@ -133,11 +146,18 @@ end
 
 function hussar:start_main_thread()
     self.main_thread = coroutine.create(hussar_thread)
-    coroutine.resume(self.main_thread, self, self.main_thread)
+    local stat, err = coroutine.resume(self.main_thread, self, self.main_thread)
+    if not stat then
+        self.logger:crash("main thread have been exited", nil, err)
+    end
 end
 
 function hussar:start()
-    hussar:start_main_thread()
+    self.logger:infof("server is starting")
+    if not self.handler then
+        self.logger:warnf("handler have not been set, you should use pull() and register_connection() to manage new connection manually.")
+    end
+    self:start_main_thread()
 end
 
 return hussar
