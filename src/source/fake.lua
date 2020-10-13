@@ -103,25 +103,25 @@ local function create_fake_connection_pair()
 end
 
 local fake_source = {
-    new_connections = {},
+    hussars = {},
 }
 
 function fake_source:clone_to(new_t)
     local object = utils.table_deep_copy(self, new_t)
-    object.new_connections = {}
+    object.hussars = {}
     return object
-end
-
-function fake_source:pull()
-    local copy = table.pack(table.unpack(self.new_connections))
-    self.new_connections = {}
-    return copy
 end
 
 function fake_source:new_connection()
     local server_side, client_side = create_fake_connection_pair()
-    table.insert(self.new_connections, server_side)
+    self:push_connection(server_side)
     return client_side
+end
+
+function fake_source:push_connection(conn)
+    for _, v in ipairs(self.hussars) do
+        v:add_connection(conn)
+    end
 end
 
 function fake_source:add_request(t)
@@ -135,7 +135,8 @@ function fake_source:create()
     return self:clone_to {}
 end
 
-function fake_source:prepare()
+function fake_source:prepare(hussar)
+    table.insert(self.hussars, hussar)
 end
 
 return fake_source
