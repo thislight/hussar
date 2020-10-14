@@ -115,7 +115,7 @@ end
 function fake_source:new_connection()
     local server_side, client_side = create_fake_connection_pair()
     self:push_connection(server_side)
-    return client_side
+    return client_side, server_side
 end
 
 function fake_source:push_connection(conn)
@@ -125,10 +125,10 @@ function fake_source:push_connection(conn)
 end
 
 function fake_source:add_request(t)
-    local conn = self:new_connection()
+    local conn, server_conn = self:new_connection()
     local request_s = httputil.request(t)
-    conn:client_write(request_s)
-    return conn
+    conn:write(request_s)
+    return conn, server_conn
 end
 
 function fake_source:create()
