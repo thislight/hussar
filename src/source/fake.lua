@@ -3,6 +3,7 @@ local utils = require "hussar.utils"
 local httputil = require "hussar.httputil"
 local Dataqueue = require "away.dataqueue"
 local powerlog = require "powerlog"
+local terr = require "hussar.terr"
 
 local function create_fake_connection_buffer(hold_until)
     return {
@@ -29,6 +30,7 @@ local function create_fake_connection_buffer(hold_until)
                     t = 'closed',
                     r = self.closed_reason
                 })
+                terr.errorT('fake_connection_buffer', 'closed', self.closed_reason)
             end
         end,
         is_alive = function(self)
@@ -53,19 +55,13 @@ local function create_connection_object(buffer, remote)
         remote = remote,
         read = function(self)
             if not self.buffer:is_alive() then
-                error({
-                    t = 'closed',
-                    r = self.buffer.closed_reason
-                })
+                terr.errorT('connection', 'closed', self.buffer.closed_reason)
             end
             return self.buffer:read()
         end,
         write = function(self, value)
             if not self.buffer:is_alive() then
-                error {
-                    t = 'closed',
-                    r = self.buffer.closed_reason
-                }
+                terr.errorT('connection', 'closed', self.buffer.closed_reason)
             end
             return self.remote:write(value)
         end,
@@ -74,10 +70,7 @@ local function create_connection_object(buffer, remote)
                 self.buffer:set_keep_alive(enable)
                 self.remote:set_keep_alive(enable)
             else
-                error({
-                    t = 'closed',
-                    r = self.buffer.closed_reason
-                })
+                terr.errorT('connection', 'closed', self.buffer.closed_reason)
             end
         end,
         close = function(self, reason)
