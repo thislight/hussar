@@ -50,6 +50,7 @@ end
 
 function hussar:attach_source(source)
     table.insert(self.sources, source)
+    source:prepare(self)
 end
 
 function hussar:create()
@@ -61,15 +62,8 @@ function hussar:add_connection(connection)
     local promised_deadline = self.time_provider() + self.connection_timeout
     local newthread = self.handler(connection, priframe, self.pubframe)
     insert(self.managed_descriptors, {connection, promised_deadline, priframe, newthread})
-    away.schedule_thread(newthread)
-    self.logger:infof("new connection")
-end
-
-local function prepare_sources(sources, ...)
-    for i, v in ipairs(sources) do
-        if v.prepare then
-            v:prepare(...)
-        end
+    if newthread then
+        away.schedule_thread(newthread)
     end
 end
 
@@ -80,7 +74,6 @@ end
 
 function hussar:start()
     assert(self.handler, "handler is not set")
-    prepare_sources(self.sources, self)
     start_managing_thread(self)
 end
 
