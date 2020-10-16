@@ -115,6 +115,7 @@ end
 function fake_source:new_connection()
     local server_side, client_side = create_fake_connection_pair()
     self:push_connection(server_side)
+    self.logger:debugf("new connection added")
     return client_side, server_side
 end
 
@@ -128,6 +129,7 @@ function fake_source:add_request(t)
     local conn, server_conn = self:new_connection()
     local request_s = httputil.request(t)
     conn:write(request_s)
+    self.logger:debugf("add_request(): request is sent")
     return conn, server_conn
 end
 
@@ -137,6 +139,8 @@ end
 
 function fake_source:prepare(hussar)
     table.insert(self.hussars, hussar)
+    self.logger = hussar.logger:create("source.fake")
+    self.logger:infof("attached")
 end
 
 return fake_source
