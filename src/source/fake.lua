@@ -2,6 +2,7 @@ local away = require "away"
 local utils = require "hussar.utils"
 local httputil = require "hussar.httputil"
 local Dataqueue = require "away.dataqueue"
+local powerlog = require "powerlog"
 
 local function create_fake_connection_buffer(hold_until)
     return {
@@ -104,6 +105,7 @@ end
 
 local fake_source = {
     hussars = {},
+    logger = powerlog:create("hussar.source.fake"),
 }
 
 function fake_source:clone_to(new_t)
