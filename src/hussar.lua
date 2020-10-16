@@ -4,8 +4,11 @@ local table_deep_copy = require("hussar.utils").table_deep_copy
 local powerlog = require "powerlog"
 local utils = require "hussar.utils"
 local co = coroutine
+local insert = table.insert
 
 local function hussar_managing_thread(hussar)
+    local logger = hussar.logger:create("managing_thread")
+    logger:info("hussar managing thread started")
     while true do
         away.wakeback_later()
         local remove_later_index = {}
@@ -20,6 +23,7 @@ local function hussar_managing_thread(hussar)
         for _, index in ipairs(remove_later_index) do
             table.remove(hussar.managed_descriptors, index)
         end
+        logger:debugf("%d descriptor(s) removed", #remove_later_index)
     end
 end
 
@@ -52,17 +56,13 @@ function hussar:create()
     return self:clone_to {}
 end
 
-local function connection_wrapper_thread(handler, ...)
-    co.yield()
-    handler(...)
-end
-
 function hussar:add_connection(connection)
     local priframe = {}
     local promised_deadline = self.time_provider() + self.connection_timeout
-    local newthread = co.create(connection_wrapper_thread)
-    table.insert(self.managed_descriptors, {connection, promised_deadline, priframe, newthread})
-    co.resume(newthread, self.handler, connection, priframe, self.pubframe)
+    local newthread = self.handler(connection, priframe, self.pubframe)
+    insert(self.managed_descriptors, {connection, promised_deadline, priframe, newthread})
+    away.schedule_thread(newthread)
+    self.logger:infof("new connection")
 end
 
 local function prepare_sources(sources, ...)
@@ -83,3 +83,5 @@ function hussar:start()
     prepare_sources(self.sources, self)
     start_managing_thread(self)
 end
+
+return hussar
