@@ -25,5 +25,6 @@ build = {
       ['hussar.request_router'] = "src/request_router/init.lua",
       ['hussar.utils'] = "src/utils.lua",
       ['hussar.wrap_thread'] = "src/wrap_thread.lua",
+      ['hussar.terr'] = "src/terr.lua",
    }
 }
