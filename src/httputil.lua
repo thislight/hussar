@@ -1,6 +1,7 @@
 local utils = require "hussar.utils"
 local lphr = require "lphr.r2"
 local pathetic = require "pathetic"
+local terr = require "hussar.terr"
 
 local function require_field(t, key)
     if t[key] == nil then
@@ -93,11 +94,12 @@ local function build_request(t)
     require_field(t, 'method')
     require_field(t, 'path')
     t.minor_version = t.minor_version or 1
-    t.headers = t.headers or {}
     local result_t = {}
     table.insert(result_t, string.format("%s %s HTTP/1.%d", string.upper(t.method), t.path, t.minor_version))
-    for i, v in ipairs(t.headers) do
-        table.insert(result_t, string.format("%s: %s", result_t[1], result_t[2]))
+    for k, v in pairs(t) do
+        if not (k == 'method' or k == 'path' or k == 'minor_version') then
+            table.insert(result_t, string.format("%s: %s", k, v))
+        end
     end
     table.insert(result_t, "")
     if t.body ~= nil then
@@ -108,13 +110,14 @@ local function build_request(t)
 end
 
 local function build_response(t)
-    require_field(t, 'status_code')
+    require_field(t, 'status')
     t.minor_version = t.minor_version or 1
-    t.headers = t.headers or {}
     local result_t = {}
-    table.insert(result_t, string.format("HTTP/1.%d %s %s", t.minor_version, t.status, t.code))
-    for i, v in ipairs(t.headers) do
-        table.insert(result_t, string.format("%s: %s", result_t[1], result_t[2]))
+    table.insert(result_t, string.format("HTTP/1.%d %s %s", t.minor_version, t.status, response_code2status_table[t.status]))
+    for k, v in pairs(t) do
+        if not (k == 'status' or k == 'minor_version') then
+            table.insert(result_t, string.format("%s: %s", k, v))
+        end
     end
     table.insert(result_t, "")
     if #t > 0 then
@@ -159,7 +162,7 @@ function headers:remove(index)
 end
 
 function headers:get_first_of(key)
-    local results = self:search(key)
+    local results = headers.search(self, key)
     if #results > 0 then
         return results[0]
     else
@@ -168,7 +171,7 @@ function headers:get_first_of(key)
 end
 
 function headers:get_last_of(key)
-    local results = self:search(key)
+    local results = headers.search(self, key)
     if #results > 0 then
         return results[#results]
     else
@@ -189,7 +192,7 @@ function headers:each()
 end
 
 function headers:get(key)
-    return table.concat(self:search(key), ',')
+    return table.concat(headers.search(self, key), ',')
 end
 
 local function wait_for_headers(connection)
@@ -204,13 +207,16 @@ local function wait_for_headers(connection)
             if not httpdata.headers then
                 httpdata.headers = {}
             else
-                if string.lower(headers.get_last_of(httpdata.headers, "Connection")) == "keep-alive" then
+                local header_connection = headers.get_last_of(httpdata.headers, "Connection")
+                if header_connection and string.lower(header_connection) == "keep-alive" then
                     connection:set_keep_alive(true)
                 end
             end
             return httpdata, body_last_in_block
         elseif pret == -1 then
-            return -1
+            terr.errorT('http', 'request_parsing_error', 'parsing_failed', {
+                raw = tostring(buffer)
+            })
         end
     end
 end
@@ -258,31 +264,32 @@ end
 
 local function wait_for_request(connection)
     local httph, body_last_in_block = wait_for_headers(connection)
-    if httph == -1 then
-        return -1, "headers error"
-    end
     local body_buffer = {}
     table.insert(body_buffer, body_last_in_block)
     local h_content_length = headers.search(httph.headers, "Content-Length")
     local h_transfer_encoding = headers.search(httph.headers, "Transfer-Encoding")
     if #h_content_length > 0 and #h_transfer_encoding >0 then
         write_error_on(connection, 400)
-        return -1, "both content-length and transfer-encoding recviced"
+        terr.errorT('http', 'request_read_error', 'both Content-Length and Transfer-Encoding found', {
+            raw = httph
+        })
     elseif #h_content_length > 0 then
         local read_length
         if utils.any(utils.map(function(v) return v ~= h_content_length end, h_content_length)) then
             write_error_on(connection, 400)
-            return -1, "multiple but unequal content-length "
+            terr.errorT('http', 'request_read_error', "multiple but unequal Content-Length")
         else
             read_length = tonumber(h_content_length[0])
             if not read_length then
                 write_error_on(connection, 400)
-                return -1, "content-length NaN"
+                terr.errorT('http', 'request_read_error', "Content-Length is NaN", {
+                    got_value = tostring(read_length)
+                })
             end
         end
         read_fixed_body(connection, body_buffer, read_length)
     elseif #h_transfer_encoding > 0 then
-        if string.lower(h_transfer_encoding[#h_transfer_encoding]) == "chunked" then
+        if string.lower(h_transfer_encoding[#h_transfer_encoding][2]) == "chunked" then
             local stat, e = read_chunked_body(connection, body_buffer)
             if stat then
                 write_error_on(connection, 400)
@@ -291,7 +298,9 @@ local function wait_for_request(connection)
         end
     else
         write_error_on(connection, 400)
-        return -1, "could not read body because of missing transfer-encoding or content-length"
+        terr.errorT('http', 'request_read_error', 'Content-Length or Transfer-Encoding is missing', {
+            raw = httph
+        })
     end
     httph[0] = table.concat(body_buffer)
     return httph
