@@ -44,13 +44,13 @@ insulate("hussar.source.fake", function()
                 end)
                 local reach = false
                 scheduler:run_task(function()
-                    assert.equals(server_conn:read(), "Hello1")
-                    assert.equals(server_conn:read(), "Hello2")
-                    assert.equals(server_conn:read(), "Hello3")
+                    assert.equals(server_conn:read_and_wait(), "Hello1")
+                    assert.equals(server_conn:read_and_wait(), "Hello2")
+                    assert.equals(server_conn:read_and_wait(), "Hello3")
                     reach = true
                 end)
                 scheduler:run()
-                assert.is.True(reach)
+                assert.is.True(reach, "all message must be received")
             end)
         end)
 

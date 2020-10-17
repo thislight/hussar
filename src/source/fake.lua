@@ -5,31 +5,38 @@ local Dataqueue = require "away.dataqueue"
 local powerlog = require "powerlog"
 local terr = require "hussar.terr"
 
-local function create_fake_connection_buffer(hold_until)
+local function create_fake_connection_buffer()
     return {
         pointer = 0,
         alive = true,
         keep_alive = false,
-        read = function(self)
+        wakeback_flag = false,
+        read = function(self, yield)
             local new_pos = self.pointer + 1
             if #self >= new_pos then
                 self.pointer = new_pos
                 return self[new_pos]
             else
-                hold_until(function()
-                    return #self > self.pointer
-                end)
+                self.wakeback_flag = true
+                yield = yield or coroutine.yield
+                yield()
                 return self:read()
             end
+        end,
+        read_and_wait = function(self)
+            return self:read(function()
+                while true do
+                    away.wakeback_later()
+                    if #self > self.pointer then
+                        break
+                    end
+                end
+            end)
         end,
         write = function(self, value)
             if self.alive then
                 table.insert(self, value)
             else
-                error({
-                    t = 'closed',
-                    r = self.closed_reason
-                })
                 terr.errorT('fake_connection_buffer', 'closed', self.closed_reason)
             end
         end,
@@ -46,6 +53,11 @@ local function create_fake_connection_buffer(hold_until)
         is_keep_alive = function(self)
             return self.keep_alive
         end,
+        require_wakeback = function(self)
+            local flag = (#self > self.pointer) and self.wakeback_flag
+            self.wakeback_flag = false
+            return flag
+        end,
     }
 end
 
@@ -53,11 +65,11 @@ local function create_connection_object(buffer, remote)
     return {
         buffer = buffer,
         remote = remote,
-        read = function(self)
+        read = function(self, yield)
             if not self.buffer:is_alive() then
                 terr.errorT('connection', 'closed', self.buffer.closed_reason)
             end
-            return self.buffer:read()
+            return self.buffer:read(yield)
         end,
         write = function(self, value)
             if not self.buffer:is_alive() then
@@ -85,12 +97,18 @@ local function create_connection_object(buffer, remote)
         is_keep_alive = function(self)
             return self.buffer:is_keep_alive()
         end,
+        require_wakeback = function(self)
+            return self.buffer:require_wakeback()
+        end,
+        read_and_wait = function(self)
+            return self.buffer:read_and_wait()
+        end
     }
 end
 
 local function create_fake_connection_pair()
-    local server_side_buffer = create_fake_connection_buffer(utils.hold_until)
-    local client_side_buffer = create_fake_connection_buffer(utils.hold_until)
+    local server_side_buffer = create_fake_connection_buffer()
+    local client_side_buffer = create_fake_connection_buffer()
     local server_side_conn = create_connection_object(server_side_buffer, client_side_buffer)
     local client_side_conn = create_connection_object(client_side_buffer, server_side_buffer)
     return server_side_conn, client_side_conn
