@@ -11,20 +11,26 @@ local function create(host, path, extra_check, host_match_kind, path_match_kind)
     if path then
         path_matcher = Silva(path, path_match_kind or 'lua')
     end
-    return function(request)
+    return function(request, frame)
         if host then
             local host_value = headers.get_last_of(request.headers, 'Host')
-            if not host_matcher(host_value) then
+            local host_match = host_matcher(host_value)
+            if not host_match then
                 return false
+            elseif frame then
+                frame.host_match = host_match
             end
         end
         if path then
-            if not path_matcher(request.path) then
+            local path_match = path_matcher(request.path)
+            if not path_match then
                 return false
+            elseif frame then
+                frame.path_match = path_match
             end
         end
         if extra_check then
-            return extra_check(request)
+            return extra_check(request, frame)
         else
             return true
         end
@@ -54,4 +60,3 @@ return {
     HOST = HOST,
     CUSTOM = CUSTOM,
 }
-
