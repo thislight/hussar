@@ -21,8 +21,8 @@ end
 
 local function wrap_context(f, ...)
     local args = table.pack(...)
-    return function()
-        return f(table.unpack(args))
+    return function(...)
+        return f(table.unpack(args), ...)
     end
 end
 
