@@ -105,9 +105,14 @@ local function pcallT(f, ...)
     return table.unpack(result)
 end
 
+local function is(e)
+    return e.__TERR__ or false
+end
+
 return {
     createE = createE,
     errorT = errorT,
     matchE = matchE,
     pcallT = pcallT,
+    is = is,
 }
