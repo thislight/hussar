@@ -20,7 +20,6 @@ build = {
    modules = {
       hussar = "src/hussar.lua",
       ['hussar.httputil'] = "src/httputil.lua",
-      ['hussar.source.luv'] = "src/source/luv.lua",
       ['hussar.source.fake'] = "src/source/fake.lua",
       ['hussar.request_router'] = "src/request_router/init.lua",
       ['hussar.utils'] = "src/utils.lua",
