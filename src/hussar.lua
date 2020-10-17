@@ -18,6 +18,13 @@ local function hussar_managing_thread(hussar)
             if not conn:is_keepalive() and current_time > promised_deadline then
                 conn:close('timeout')
                 table.insert(remove_later_index, i)
+            elseif coroutine.status(binded_thread) == 'dead' then
+                conn:close("thread is dead")
+                table.insert(remove_later_index, i)
+            elseif not conn:is_alive() then
+                table.insert(remove_later_index, i)
+            elseif binded_thread and conn:require_wakeback() then
+                away.schedule_thread(binded_thread)
             end
         end
         for _, index in ipairs(remove_later_index) do
