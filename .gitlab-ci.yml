@@ -1,13 +1,13 @@
 test_lua53:
     stage: test
-    image: registry.gitlab.com/thislight/hussar:f32_l53
+    image: registry.gitlab.com/thislight/hussar:alpine3d12_lua53
     script:
         - luarocks make
         - /bin/busted
 
 test_lua54:
     stage: test
-    image: rregistry.gitlab.com/thislight/hussar:f33_l54
+    image: registry.gitlab.com/thislight/hussar:alpine3d12_lua54
     script:
         - luarocks make
         - /bin/busted
