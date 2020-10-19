@@ -45,6 +45,10 @@ alpine3.12_lua54:coverage:
         - luacov hussar
         - cat luacov.report.out
     coverage: '/^Total\s+\d+\s+\d+\s+(\d+\.?\d*\%)/'
+    artifacts:
+        paths:
+            - luacov.report.out
+            - luacov.stats.out
 
 packing_git_src_rock:
     stage: packing
