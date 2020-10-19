@@ -4,7 +4,7 @@ function check_result(){
 
 cd luarocks-3.3.1
 check_result
-./configure --with-lua-include=/usr/include/
+./configure --with-lua-include=/usr/local/include/
 check_result
 make
 check_result
