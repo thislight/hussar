@@ -10,7 +10,7 @@ description = {
 dependencies = {
    "lua >=5.3, <=5.4",
    "away >=0.1.0, <1",
-   "luapicohttpparser 0.2-0",
+   "luapicohttpparser 0.2-1",
    "pathetic >=1.0.2, <2",
    "powerlog 0.1.0",
    "away-dataqueue 0.1.0",
