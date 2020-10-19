@@ -3,11 +3,11 @@ test_lua53:
     image: registry.gitlab.com/thislight/hussar:debian11_lua53
     script:
         - luarocks make
-        - /bin/busted
+        - busted
 
 test_lua54:
     stage: test
     image: registry.gitlab.com/thislight/hussar:alpine3d12_lua54
     script:
         - luarocks make
-        - /bin/busted
+        - busted
