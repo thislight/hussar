@@ -87,3 +87,5 @@ function RequestRouter:error_handler(e, conn, frame, pubframe)
     httputil.respond(conn, {status=500})
     self.logger:warn("error while handler runing", e)
 end
+
+return RequestRouter
