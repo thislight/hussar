@@ -1,13 +1,55 @@
-test_lua53:
-    stage: test
+stages:
+    - build
+    - test
+    - coverage
+    - packing
+
+build_debian11_lua53:
+    stage: build
     image: registry.gitlab.com/thislight/hussar:debian11_lua53
     script:
         - luarocks make
-        - busted
 
-test_lua54:
-    stage: test
+build_alpine3.12_lua54:
+    stage: build
     image: registry.gitlab.com/thislight/hussar:alpine3d12_lua54
     script:
         - luarocks make
+
+test_debian11_lua53:
+    stage: test
+    image: registry.gitlab.com/thislight/hussar:debian11_lua53
+    before_script:
+        - luarocks make
+    script:
         - busted
+
+test_alpine3.12_lua54:
+    stage: test
+    image: registry.gitlab.com/thislight/hussar:alpine3d12_lua54
+    before_script:
+        - luarocks make
+    script:
+        - busted
+
+coverage_alpine3.12_lua54:
+    stage: coverage
+    image: registry.gitlab.com/thislight/hussar:alpine3d12_lua54
+    before_script:
+        - luarocks make
+    script:
+        - busted -c
+        - luacov hussar
+        - cat luacov.report.out
+    coverage: '^Total\s+\d+\s+\d+\s+(\d+\.?\d*\%)'
+
+packing_git_src_rock:
+    stage: packing
+    image: registry.gitlab.com/thislight/hussar:alpine3d12_lua54_git
+    before_script:
+        - luarocks make
+    script:
+        - luarocks pack hussar-git-0.rockspec
+    artifacts:
+        paths:
+            - hussar-git-0.rock
