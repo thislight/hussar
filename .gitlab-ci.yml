@@ -20,6 +20,8 @@ debian11_lua53:test:
     stage: test
     image: registry.gitlab.com/thislight/hussar:debian11_lua53
     needs: ['debian11_lua53:build']
+    before_script:
+        - luarocks make
     script:
         - busted
 
@@ -27,6 +29,8 @@ alpine3.12_lua54:test:
     stage: test
     image: registry.gitlab.com/thislight/hussar:alpine3d12_lua54
     needs: ['alpine3.12_lua54:build']
+    before_script:
+        - luarocks make
     script:
         - busted
 
@@ -34,6 +38,8 @@ alpine3.12_lua54:coverage:
     stage: coverage
     image: registry.gitlab.com/thislight/hussar:alpine3d12_lua54
     needs: ['alpine3.12_lua54:build']
+    before_script:
+        - luarocks make
     script:
         - busted -c
         - luacov hussar
@@ -48,4 +54,4 @@ packing_git_src_rock:
         - luarocks pack hussar-git-0.rockspec
     artifacts:
         paths:
-            - hussar-git-0.rock
+            - ./hussar-git-0.rock
