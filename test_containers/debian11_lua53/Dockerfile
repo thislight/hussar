@@ -17,5 +17,6 @@ COPY ./install_luarocks.sh /install_luarocks.sh
 RUN bash /download_luarocks.sh
 RUN bash /install_luarocks.sh
 RUN luarocks install busted
+RUN luarocks install luacov
 
 CMD sh -c "lua -v && luarocks --version && printf \"busted: \" && busted --version"

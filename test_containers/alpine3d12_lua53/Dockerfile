@@ -27,4 +27,6 @@ RUN sh /install_busted.sh
 
 RUN sh /cleanup_musl.sh
 
+RUN luarocks install luacov
+
 CMD sh -c "lua -v && luarocks --version && printf \"busted: \" && busted --version"

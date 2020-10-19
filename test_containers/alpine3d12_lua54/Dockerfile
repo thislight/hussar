@@ -29,4 +29,6 @@ RUN apk add busybox openssl
 
 RUN luarocks install busted
 
+RUN luarocks install luacov
+
 CMD sh -c "lua -v && luarocks --version && printf \"busted: \" && busted --version"
