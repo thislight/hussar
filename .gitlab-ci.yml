@@ -41,7 +41,7 @@ coverage_alpine3.12_lua54:
         - busted -c
         - luacov hussar
         - cat luacov.report.out
-    coverage: '^Total\s+\d+\s+\d+\s+(\d+\.?\d*\%)'
+    coverage: '/^Total\s+\d+\s+\d+\s+(\d+\.?\d*\%)/'
 
 packing_git_src_rock:
     stage: packing
