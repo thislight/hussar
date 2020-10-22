@@ -30,8 +30,8 @@ local OBJ_META = {
     end,
 }
 
-local function create()
-    local new = {}
+local function create(t)
+    local new = t or {}
     setmetatable(new, OBJ_META)
     return new
 end
@@ -43,8 +43,14 @@ local function wrap_context(f, ...)
     end
 end
 
+local function getcopy(line)
+    local v = table.pack(table.unpack(line))
+    return create(v)
+end
+
 return {
     create = create,
     call = call,
     wrap_context = wrap_context,
+    getcopy = getcopy,
 }
