@@ -56,7 +56,7 @@ function RequestRouter:route(request, conn, frame, pubframe)
             return handler
         end
     end
-    return wrapline.wrap_context(self.not_found_error_handler, request)
+    return wrapline.wrap_context(self.not_found_error_handler, request, conn, frame, pubframe)
 end
 
 function RequestRouter.not_found_error_handler(request)
