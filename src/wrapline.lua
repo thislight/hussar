@@ -36,10 +36,17 @@ local function create(t)
     return new
 end
 
+local pack = table.pack
+local move = table.move
+local unpack = table.unpack
+
 local function wrap_context(f, ...)
-    local args = table.pack(...)
+    local args = pack(...)
     return function(...)
-        return f(table.unpack(args), ...)
+        local new_args = pack(...)
+        move(new_args, 1, #new_args, #args+1, new_args)
+        move(args, 1, #args, 1, new_args)
+        return f(unpack(new_args))
     end
 end
 
