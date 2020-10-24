@@ -18,11 +18,27 @@
 
 local create = coroutine.create
 local resume = coroutine.resume
+local status = coroutine.status
+local terr = require "hussar.terr"
+local pack = table.pack
+local unpack = table.unpack
+local remove = table.remove
 
 return function(func)
     return function(...)
         local new_thread = create(func)
-        resume(new_thread, ...)
-        return new_thread
+        local result = pack(resume(new_thread, ...))
+        local stat = result[1]
+        if not stat then
+            terr.errorT('wrap_thread', 'firstcall_error', result[2], {
+                thread = new_thread
+            })
+        elseif status(new_thread) == "dead" then
+            result[1] = nil
+            return unpack(result)
+        else
+            result[1] = new_thread
+            return unpack(result)
+        end
     end
 end
