@@ -40,5 +40,26 @@ describe("hussar.request_router", function()
             assert.equals(mock_handler1.mock, result)
             assert.is_not.equals(mock_handler2, result)
         end)
+        it("return not found handler if handler not found", function()
+            local fake_request = {path = "/test"}
+            local router = RequestRouter:create()
+            router.not_found_error_handler = function(request, conn, frame, pubframe)
+                assert.is.truthy(request)
+                assert.is.truthy(conn)
+                assert.is.truthy(frame)
+                assert.is.truthy(pubframe)
+                return {
+                    status = 404,
+                }
+            end
+            local user_handler = router:route(fake_request, {fake_conn=true}, {fake_frame=true}, {fake_pubframe=true})
+            local result = user_handler()
+            --[[
+                the reason to compare the result of calling but not reference of function is,
+                request_router will wrap the not_found_handler to make sure it can receive four arguments (request, conn, frame, pubframe) as promised
+            ]]
+            assert.is_not.equals(router.not_found_error_handler, user_handler)
+            assert.are.same({status = 404}, result)
+        end)
     end)
 end)
