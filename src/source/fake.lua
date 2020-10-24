@@ -53,6 +53,7 @@ local function create_fake_connection_buffer()
         write = function(self, value)
             if self.alive then
                 table.insert(self, value)
+                self.wakeback_flag = true
             else
                 terr.errorT('fake_connection_buffer', 'closed', self.closed_reason)
             end
