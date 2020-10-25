@@ -53,17 +53,19 @@ function RequestRouter:route(request, conn, frame, pubframe)
     for i, v in ipairs(self.routes) do
         local handler, checker = table.unpack(v)
         if checker(request, frame) then
+            self.logger:debugf("routed: path=%s", request.path)
             return handler
         end
     end
+    self.logger:debugf("not found: path=%s", request.path)
     return wrapline.wrap_context(self.not_found_error_handler, request, conn, frame, pubframe)
 end
 
-function RequestRouter.not_found_error_handler(request)
-    return {
+function RequestRouter.not_found_error_handler(request, conn)
+    httputil.respond(conn, {
         status = 404,
         string.format("404 Not Found: %s", request.path)
-    }
+    })
 end
 
 return RequestRouter
