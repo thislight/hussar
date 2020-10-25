@@ -112,6 +112,12 @@ local function build_request(t)
     require_field(t, 'path')
     t.minor_version = t.minor_version or 1
     local result_t = {}
+    if #t > 0 and (not t['Content-Length'] and not t['Content-Length']) then
+        t['Content-Length'] = tostring(#t[0])
+    end
+    if #t > 0 and not t['Content-Type'] then
+        t['Content-Type'] = 'plain/text'
+    end
     table.insert(result_t, string.format("%s %s HTTP/1.%d", string.upper(t.method), t.path, t.minor_version))
     for k, v in pairs(t) do
         if not (k == 'method' or k == 'path' or k == 'minor_version') then
@@ -119,16 +125,25 @@ local function build_request(t)
         end
     end
     table.insert(result_t, "")
-    if t.body ~= nil then
-        table.insert(result_t, t.body)
+    if #t > 0 then
+        if string.lower(t['Transfer-Encoding']) == "chunked" then
+            table.insert(tostring(#t[0]))
+        end
+        table.insert(result_t, t[0])
+    else
+        table.insert(result_t, "") -- an empty line is required to end the headers
     end
-    table.insert(result_t, '')
     return table.concat(result_t, "\r\n")
 end
 
 local function build_response(t)
     require_field(t, 'status')
     t.minor_version = t.minor_version or 1
+    if not t['Content-Length'] and t['Transfer-Encoding'] then
+        if t[0] then
+            t['Content-Length'] = tostring(#t[0])
+        end
+    end
     local result_t = {}
     table.insert(result_t, string.format("HTTP/1.%d %s %s", t.minor_version, t.status, response_code2status_table[t.status]))
     for k, v in pairs(t) do
@@ -138,8 +153,13 @@ local function build_response(t)
     end
     table.insert(result_t, "")
     if #t > 0 then
-        table.insert(result_t, t[0]) -- TODO(thislight): table array as chunked data.
-        table.insert(result_t, "")
+        local transfer_encoding = t['Transfer-Encoding']
+        if transfer_encoding and string.lower(transfer_encoding) == 'chunked' then
+            table.insert(result_t, tostring(#t[0]))
+        end
+        table.insert(result_t, t[0])
+    else
+        table.insert(result_t, "") -- an empty line is required to end the headers
     end
     return table.concat(result_t, "\r\n")
 end
@@ -215,9 +235,11 @@ end
 local function wait_for_headers(connection)
     local last_len, buffer, httpdata
     while true do
+        print("read headers")
         local data = connection:read()
         local pret
         pret, buffer, last_len, httpdata = lphr.parse_request(data, buffer, last_len)
+        print(pret)
         if pret > 0 then
             local body_last_in_block = lphr.get_body(buffer, pret)
             httpdata.uri = pathetic:parse(httpdata.path)
@@ -225,7 +247,9 @@ local function wait_for_headers(connection)
                 httpdata.headers = {}
             else
                 local header_connection = headers.get_last_of(httpdata.headers, "Connection")
-                if header_connection and string.lower(header_connection) == "keep-alive" then
+                if (header_connection and string.lower(header_connection) == "keep-alive") then
+                    connection:set_keep_alive(true)
+                elseif httpdata.minor_version == 1 and (string.lower(header_connection or '') ~= "close") then
                     connection:set_keep_alive(true)
                 end
             end
@@ -310,14 +334,13 @@ local function wait_for_request(connection)
             local stat, e = read_chunked_body(connection, body_buffer)
             if stat then
                 write_error_on(connection, 400)
-                return stat, e
+                terr.errorT('http', 'request_read_error', e,{
+                    raw = httph
+                })
             end
         end
     else
-        write_error_on(connection, 400)
-        terr.errorT('http', 'request_read_error', 'Content-Length or Transfer-Encoding is missing', {
-            raw = httph
-        })
+        return httph
     end
     httph[0] = table.concat(body_buffer)
     return httph
