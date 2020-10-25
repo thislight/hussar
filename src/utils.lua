@@ -50,53 +50,29 @@ local function hold_until(checkf)
     coroutine.resume(new_thread, checkf, wakeback_thread)
 end
 
-local function map(f, t)
-    local iter
-    if type(t) == 'table' then
-        local ipairs_iter = ipairs(t)
-        iter = function()
-            local _, v = ipairs_iter()
-            return v
-        end
-    else
-        iter = t
-    end
-    return coroutine.wrap(function()
-        local v = iter()
-        if v then
-            return f(v)
-        else
-            return nil
-        end
-    end)
-end
-
-local function gentable(iter)
-    local t = {}
-    for v in iter do
-        table.insert(t, v)
-    end
-    return t
-end
-
-local function itself(v)
-    return v
-end
-
-local function any(t)
-    for v in map(itself, t) do
-        if v then
-            return true
+local function all_equals(t, value)
+    for i, v in ipairs(t) do
+        if v ~= value then
+            return false
         end
     end
-    return false
+    return true
 end
+
+local function exact(t, key)
+    local new_table = {}
+    for i, v in ipairs(t) do
+        if v[key] then
+            table.insert(new_table, v[key])
+        end
+    end
+    return new_table
+end
+
 return {
     table_deep_copy = table_deep_copy,
     yield_wakeback = yield_wakeback,
     hold_until = hold_until,
-    map = map,
-    gentable = gentable,
-    itself = itself, 
-    any = any,
+    all_equals = all_equals,
+    exact = exact,
 }

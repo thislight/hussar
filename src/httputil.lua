@@ -126,7 +126,8 @@ local function build_request(t)
     end
     table.insert(result_t, "")
     if #t > 0 then
-        if string.lower(t['Transfer-Encoding']) == "chunked" then
+        local transfer_encoding = t['Transfer-Encoding']
+        if transfer_encoding and string.lower(transfer_encoding) == "chunked" then
             table.insert(tostring(#t[1]))
         end
         table.insert(result_t, t[1])
@@ -296,7 +297,7 @@ end
 
 local function write_error_on(connection, status_code, body)
     connection:write(build_response {
-        status_code = status_code,
+        status = status_code,
         body
     })
 end
@@ -314,15 +315,19 @@ local function wait_for_request(connection)
         })
     elseif #h_content_length > 0 then
         local read_length
-        if utils.any(utils.map(function(v) return v ~= h_content_length end, h_content_length)) then
+        local values = utils.exact(h_content_length, 2)
+        if not utils.all_equals(values, values[1]) then
             write_error_on(connection, 400)
-            terr.errorT('http', 'request_read_error', "multiple but unequal Content-Length")
+            terr.errorT('http', 'request_read_error', "multiple but unequal Content-Length", {
+                values = values
+            })
         else
-            read_length = tonumber(h_content_length[0])
+            read_length = tonumber(values[1])
             if not read_length then
                 write_error_on(connection, 400)
                 terr.errorT('http', 'request_read_error', "Content-Length is NaN", {
-                    got_value = tostring(read_length)
+                    got_value = tostring(read_length),
+                    raw = httph,
                 })
             end
         end
