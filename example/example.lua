@@ -31,9 +31,8 @@ away.scheduler:run_task(function()
     local conn = source:add_request {
         method = 'GET',
         path = '/',
-        ['Transfer-Encoding'] = 'Chunked',
     }
-    local s = conn:read()
+    local s = conn:read_and_wait()
     print(s)
     away.scheduler:stop()
 end)
