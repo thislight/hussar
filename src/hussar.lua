@@ -26,13 +26,14 @@ local insert = table.insert
 local function hussar_managing_thread(hussar)
     local logger = hussar.logger:create("managing_thread")
     logger:info("hussar managing thread started")
+    co.yield()
     while true do
         away.wakeback_later()
         local remove_later_index = {}
         local current_time = hussar.time_provider()
         for i, ds in ipairs(hussar.managed_descriptors) do
             local conn, promised_deadline, frame, binded_thread = table.unpack(ds)
-            if not conn:is_keepalive() and current_time > promised_deadline then
+            if not conn:is_keep_alive() and current_time > promised_deadline then
                 conn:close('timeout')
                 table.insert(remove_later_index, i)
             elseif coroutine.status(binded_thread) == 'dead' then
@@ -47,7 +48,6 @@ local function hussar_managing_thread(hussar)
         for _, index in ipairs(remove_later_index) do
             table.remove(hussar.managed_descriptors, index)
         end
-        logger:debugf("%d descriptor(s) removed", #remove_later_index)
     end
 end
 
@@ -86,14 +86,12 @@ function hussar:add_connection(connection)
     local promised_deadline = self.time_provider() + self.connection_timeout
     local newthread = self.handler(connection, priframe, self.pubframe)
     insert(self.managed_descriptors, {connection, promised_deadline, priframe, newthread})
-    if newthread then
-        away.schedule_thread(newthread)
-    end
 end
 
 local function start_managing_thread(...)
     local thread = coroutine.create(hussar_managing_thread)
-    coroutine.resume(thread, ...)
+    co.resume(thread, ...)
+    away.schedule_thread(thread)
 end
 
 function hussar:start()
