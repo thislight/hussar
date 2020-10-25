@@ -112,8 +112,8 @@ local function build_request(t)
     require_field(t, 'path')
     t.minor_version = t.minor_version or 1
     local result_t = {}
-    if #t > 0 and (not t['Content-Length'] and not t['Content-Length']) then
-        t['Content-Length'] = tostring(#t[0])
+    if #t > 0 and ((not t['Content-Length']) and (not t['Content-Length'])) then
+        t['Content-Length'] = tostring(#t[1])
     end
     if #t > 0 and not t['Content-Type'] then
         t['Content-Type'] = 'plain/text'
@@ -127,9 +127,9 @@ local function build_request(t)
     table.insert(result_t, "")
     if #t > 0 then
         if string.lower(t['Transfer-Encoding']) == "chunked" then
-            table.insert(tostring(#t[0]))
+            table.insert(tostring(#t[1]))
         end
-        table.insert(result_t, t[0])
+        table.insert(result_t, t[1])
     else
         table.insert(result_t, "") -- an empty line is required to end the headers
     end
@@ -139,15 +139,15 @@ end
 local function build_response(t)
     require_field(t, 'status')
     t.minor_version = t.minor_version or 1
-    if not t['Content-Length'] and t['Transfer-Encoding'] then
-        if t[0] then
-            t['Content-Length'] = tostring(#t[0])
+    if not (t['Content-Length'] and t['Transfer-Encoding']) then
+        if t[1] then
+            t['Content-Length'] = tostring(#t[1])
         end
     end
     local result_t = {}
     table.insert(result_t, string.format("HTTP/1.%d %s %s", t.minor_version, t.status, response_code2status_table[t.status]))
     for k, v in pairs(t) do
-        if not (k == 'status' or k == 'minor_version') then
+        if (not tonumber(k)) and (not (k == 'status' or k == 'minor_version')) then
             table.insert(result_t, string.format("%s: %s", k, v))
         end
     end
@@ -155,9 +155,9 @@ local function build_response(t)
     if #t > 0 then
         local transfer_encoding = t['Transfer-Encoding']
         if transfer_encoding and string.lower(transfer_encoding) == 'chunked' then
-            table.insert(result_t, tostring(#t[0]))
+            table.insert(result_t, tostring(#t[1]))
         end
-        table.insert(result_t, t[0])
+        table.insert(result_t, t[1])
     else
         table.insert(result_t, "") -- an empty line is required to end the headers
     end
@@ -201,7 +201,7 @@ end
 function headers:get_first_of(key)
     local results = headers.search(self, key)
     if #results > 0 then
-        return results[0]
+        return results[1]
     else
         return nil
     end
@@ -340,7 +340,7 @@ local function wait_for_request(connection)
     else
         return httph
     end
-    httph[0] = table.concat(body_buffer)
+    httph[1] = table.concat(body_buffer)
     return httph
 end
 
