@@ -235,11 +235,9 @@ end
 local function wait_for_headers(connection)
     local last_len, buffer, httpdata
     while true do
-        print("read headers")
         local data = connection:read()
         local pret
         pret, buffer, last_len, httpdata = lphr.parse_request(data, buffer, last_len)
-        print(pret)
         if pret > 0 then
             local body_last_in_block = lphr.get_body(buffer, pret)
             httpdata.uri = pathetic:parse(httpdata.path)
