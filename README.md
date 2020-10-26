@@ -25,7 +25,7 @@ Toolkit, to go. Hussar is a powerful HTTP server toolkit.
 - Basic Usages (TBD)
 
 ## Examples
-(TBD: the examples are not completely adapted to lastest hussar)
+See `example/` directory.
 
 ## Running Tests
 Use [busted](http://olivinelabs.com/busted/): `busted`.
@@ -37,7 +37,7 @@ There are some predefined docker images for running tests, they are configured t
 - `registry.gitlab.com/thislight/hussar:alpine3d12_lua54_git` (`git` included)
 - `registry.gitlab.com/thislight/hussar:debian11_lua53` (`git` included)
 
-You need to specify `bash` to start bash, or you will get some version infomation, for example: `podman -it registry.gitlab.com/thislight/hussar:debian11_lua53 bash`.
+You need to specify `bash` to start bash, or you will get some version infomation, for example: `podman -it registry.gitlab.com/thislight/hussar:debian11_lua53 bash`. These images have included `busted`.
 
 They are just environments, you still need cloning files and running `luarocks make` to install all required packages before you run anything.
 
