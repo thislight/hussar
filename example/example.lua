@@ -1,4 +1,5 @@
 local away = require "away"
+local debugger = require "away.debugger"
 local Hussar = require "hussar"
 local FakeSource = require "hussar.source.fake"
 local httputil = require "hussar.httputil"
@@ -11,10 +12,13 @@ local wrap_thread = require "hussar.wrap_thread"
 
 server.handler = wrap_thread(function(conn, frame, pubframe)
     local request = httputil.wait_for_request(conn)
-    if request.path == '/' then
+    print("---- Request in Table ----")
+    print(debugger.topstring(request))
+    print("--------")
+    if request.path == '/' and string.lower(request.method) == "post" then
         httputil.respond_on(conn) {
             status = 200,
-            "Hello World!"
+            string.format("Hello %s!", request[1] or "World")
         }
         conn:close()
     else
@@ -28,12 +32,16 @@ end)
 server:attach_source(source)
 
 away.scheduler:run_task(function()
+    local the_name = "The Courier"
     local conn = source:add_request {
-        method = 'GET',
+        method = 'POST',
         path = '/',
+        the_name,
     }
     local s = conn:read_and_wait()
+    print("---- Response ----")
     print(s)
+    print("--------")
     away.scheduler:stop()
 end)
 
