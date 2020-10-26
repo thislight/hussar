@@ -30,6 +30,10 @@ server:attach_source(source)
 
 local Scheduler = away.scheduler
 
+local Debugger = require "away.debugger"
+-- local watchers = Debugger:set_default_watchers(Scheduler)
+-- Debugger:unset_default_watchers(Scheduler, {before_run_step=watchers.before_run_step})
+
 local router = RequestHandler:create {
     {'/$', function(request, frame, pubframe)
         return {
@@ -39,12 +43,23 @@ local router = RequestHandler:create {
     end}
 }
 
-server.handler = function(conn, frame, pubframe)
+local function handler_auto_write(handler, conn)
+    return function(...)
+        local result = handler(...)
+        if result then
+            conn:write(httputil.response(result))
+        elseif not conn:is_keep_alive() and conn:is_alive() then
+            conn:close()
+        end
+    end
+end
+
+server.handler = wrap_thread(function(conn, frame, pubframe)
     local request = httputil.wait_for_request(conn)
     local user_handler = router:route(request, conn, frame, pubframe)
     frame.connection = conn
-    return wrap_thread(user_handler)(request, frame, pubframe)
-end
+    handler_auto_write(user_handler, conn)(request, frame, pubframe)
+end)
 
 Scheduler:run_task(function()
     server:start()
