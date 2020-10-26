@@ -51,8 +51,27 @@ source get new connection -> hussar instance's :add_connection(new_connection) -
 ````
 A descriptor include the connection, the deadline, the binded thread related to the connection (return by handler) and the related frame (saves user values).
 
-Managing thread will scan the descriptors in each turn of scheduler's loop, wakeback the thread if connection need a wakeback (`connection:require_wakeback()`).
+Managing thread will scan the descriptors in each turn of scheduler's loop, wakeback the thread if connection need a wakeback (`connection:require_wakeback()`) and maintain the descriptors' list when is needed.
 
-Notice: managin thread only can wakeback the binded thread which included in descriptor, if you need to read something from connection out of hussar, `connection:read_and_wait()` will wakeback repeatly and check until the connection has data to return. `connection:read()` just yield and wait for wakeback from managing thread.
+Notice: managing thread only can wakeback the binded thread which included in descriptor, if you need to read something from connection out of hussar, `connection:read_and_wait()` will wakeback repeatly and check until the connection has data to return. `connection:read()` just yield and wait for wakeback from managing thread.
+
+In most cases, managing thread will manage connection correctly, but sources can still do something on connection by themselves.
+
+## HTTPUtil: HTTP Toolkit
+Hussar does not provide a "must use" implementation of HTTP, but there is a default library to deal with HTTP connection. It's `hussar.httputil`.
+
+Under this namespace:
+- wait_for_request
+- wait_for_headers
+- request
+- response
+- headers
+- status2code (table)
+- code2status (table)
+- default_methods (table)
+- read_fixed_body
+- read_chunked_body
+- respond
+- respond_on
 
 (TBD...)
