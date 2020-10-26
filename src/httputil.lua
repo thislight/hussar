@@ -263,6 +263,7 @@ end
 
 local function read_fixed_body(connection, buffer, length)
     local required_length = length
+    required_length = required_length - #(table.concat(buffer)) -- we could not assume the buffer is empty
     while required_length > 0 do
         local data = connection:read()
         required_length = required_length - #data
@@ -271,7 +272,7 @@ local function read_fixed_body(connection, buffer, length)
 end
 
 local function read_chunked_body(connection, buffer)
-    local chunk_len_str = ""
+    local chunk_len_str = table.concat(buffer) -- we cloud not assume the buffer is empty
     local chunk_len
     while not string.match(chunk_len_str, "\r\n") do
         local data = connection:read()
