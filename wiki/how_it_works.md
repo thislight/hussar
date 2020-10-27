@@ -74,4 +74,6 @@ Under this namespace:
 - respond
 - respond_on
 
+If you want to get a http request from a connection, you will use `wait_for_request`. It uses `connection:read()` to read strings from connection and parse them as http protocol described.
+
 (TBD...)
