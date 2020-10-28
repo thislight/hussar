@@ -31,7 +31,8 @@ local function hussar_managing_thread(hussar)
         away.wakeback_later()
         local remove_later_index = {}
         local current_time = hussar.time_provider()
-        for i, ds in ipairs(hussar.managed_descriptors) do
+        local managed_descriptors = hussar.managed_descriptors
+        for i, ds in ipairs(managed_descriptors) do
             local conn, promised_deadline, frame, binded_thread = table.unpack(ds)
             if not conn:is_keep_alive() and current_time > promised_deadline then
                 conn:close('timeout')
@@ -46,7 +47,10 @@ local function hussar_managing_thread(hussar)
             end
         end
         for _, index in ipairs(remove_later_index) do
-            table.remove(hussar.managed_descriptors, index)
+            local descriptor = managed_descriptors[index]
+            local connection = descriptor[1]
+            connection.refcount = connection.refcount - 1
+            table.remove(managed_descriptors, index)
         end
     end
 end
@@ -82,6 +86,10 @@ function hussar:create()
 end
 
 function hussar:add_connection(connection)
+    if not connection.refcount then
+        connection.refcount = 0
+    end
+    connection.refcount = connection.refcount + 1
     local priframe = {}
     local promised_deadline = self.time_provider() + self.connection_timeout
     local newthread = self.handler(connection, priframe, self.pubframe)
