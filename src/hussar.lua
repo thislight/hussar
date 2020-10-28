@@ -47,9 +47,6 @@ local function hussar_managing_thread(hussar)
             end
         end
         for _, index in ipairs(remove_later_index) do
-            local descriptor = managed_descriptors[index]
-            local connection = descriptor[1]
-            connection.refcount = connection.refcount - 1
             table.remove(managed_descriptors, index)
         end
     end
@@ -86,10 +83,6 @@ function hussar:create()
 end
 
 function hussar:add_connection(connection)
-    if not connection.refcount then
-        connection.refcount = 0
-    end
-    connection.refcount = connection.refcount + 1
     local priframe = {}
     local promised_deadline = self.time_provider() + self.connection_timeout
     local newthread = self.handler(connection, priframe, self.pubframe)
