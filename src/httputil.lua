@@ -355,7 +355,7 @@ local function respond(connection, response_t)
     if connection.after_http_repond then
         connection:after_http_repond(response_t)
     end
-    if not connection:set_keep_alive() then
+    if not connection:is_keep_alive() then
         connection:close()
     end
 end
