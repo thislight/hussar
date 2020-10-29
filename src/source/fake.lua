@@ -50,6 +50,9 @@ local function create_fake_connection_buffer()
                 end
             end)
         end,
+        has_new_data = function(self)
+            return self[self.pointer+1] ~= nil
+        end,
         write = function(self, value)
             if self.alive then
                 table.insert(self, value)
@@ -120,7 +123,10 @@ local function create_connection_object(buffer, remote)
         end,
         read_and_wait = function(self)
             return self.buffer:read_and_wait()
-        end
+        end,
+        has_new_data = function(self)
+            return self.buffer:has_new_data()
+        end,
     }
 end
 
