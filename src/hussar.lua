@@ -48,6 +48,8 @@ local function hussar_managing_thread(hussar)
                 table.insert(remove_later_index, i)
             elseif binded_thread and conn:require_wakeback() then
                 away.schedule_thread(binded_thread)
+            elseif conn:is_keep_alive() and conn.inactive and conn:has_new_data() then
+                hussar:add_connection(conn)
             end
         end
         for _, index in ipairs(remove_later_index) do
@@ -88,7 +90,11 @@ end
 
 function hussar:add_connection(connection)
     local priframe = {}
-    local patch = {}
+    local patch = {
+        after_http_respond = function(self)
+            self.inactive = true
+        end,
+    }
     local patched_connection = patch_connection(connection, patch)
     local promised_deadline = self.time_provider() + self.connection_timeout
     local newthread = self.handler(patched_connection, priframe, self.pubframe)
