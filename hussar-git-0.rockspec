@@ -28,5 +28,6 @@ build = {
       ['hussar.wrap_thread'] = "src/wrap_thread.lua",
       ['hussar.terr'] = "src/terr.lua",
       ['hussar.wrapline']  = "src/wrapline.lua",
+      ['hussar.virbuffer'] = "src/virbuffer.lua",
    }
 }
