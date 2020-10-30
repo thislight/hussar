@@ -234,6 +234,9 @@ function headers:get(key)
 end
 
 local function wait_for_headers(connection)
+    if connection.headers_ready then
+        return connection.headers_ready
+    end
     local last_len, buffer, httpdata
     while true do
         local data = connection:read()
@@ -304,6 +307,9 @@ local function write_error_on(connection, status_code, body)
 end
 
 local function wait_for_request(connection)
+    if connection.request_ready then
+        return connection.request_ready
+    end
     local httph, body_last_in_block = wait_for_headers(connection)
     local body_buffer = {}
     table.insert(body_buffer, body_last_in_block)
