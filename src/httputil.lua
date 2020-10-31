@@ -402,7 +402,7 @@ function httpconnection:close(reason)
 end
 
 function httpconnection:is_alive()
-    return self.close_reason ~= nil
+    return self.close_reason == nil
 end
 
 function httpconnection:set_keep_alive(enable)
