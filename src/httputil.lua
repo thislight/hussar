@@ -244,6 +244,7 @@ local function wait_for_headers(connection)
         pret, buffer, last_len, httpdata = lphr.parse_request(data, buffer, last_len)
         if pret > 0 then
             local body_last_in_block = lphr.get_body(buffer, pret)
+            connection:putback(body_last_in_block)
             httpdata.uri = pathetic:parse(httpdata.path)
             if not httpdata.headers then
                 httpdata.headers = {}
@@ -255,7 +256,7 @@ local function wait_for_headers(connection)
                     connection:set_keep_alive(true)
                 end
             end
-            return httpdata, body_last_in_block
+            return httpdata
         elseif pret == -1 then
             terr.errorT('http', 'request_parsing_error', 'parsing_failed', {
                 raw = tostring(buffer)
@@ -310,9 +311,8 @@ local function wait_for_request(connection)
     if connection.request_ready then
         return connection.request_ready
     end
-    local httph, body_last_in_block = wait_for_headers(connection)
+    local httph = wait_for_headers(connection)
     local body_buffer = {}
-    table.insert(body_buffer, body_last_in_block)
     local h_content_length = headers.search(httph.headers, "Content-Length")
     local h_transfer_encoding = headers.search(httph.headers, "Transfer-Encoding")
     if #h_content_length > 0 and #h_transfer_encoding >0 then
@@ -393,7 +393,7 @@ function httpconnection:read()
 end
 
 function httpconnection:putback(value)
-    table.insert(value)
+    table.insert(self, value)
 end
 
 function httpconnection:write(value)
