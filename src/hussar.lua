@@ -56,7 +56,7 @@ end
 local hussar = {
     managed_descriptors = {},
     time_provider = function()
-        return os.time() * 1000
+        return os.time()
     end,
     pubframe = {},
     handler = function(conn, frame, pubframe)
