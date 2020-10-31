@@ -372,6 +372,65 @@ local function respond_on(connection)
     end
 end
 
+local httpconnection = {}
+
+function httpconnection.new(raw_conn)
+    return setmetatable({
+        raw = raw_conn,
+    }, { __index = httpconnection })
+end
+
+function httpconnection:read()
+    if self.close_reason then
+        terr.errorT('httpconnection', 'closed', self.close_reason)
+    end
+    return self.raw:read()
+end
+
+function httpconnection:write(value)
+    if self.close_reason then
+        terr.errorT('httpconnection', 'closed', self.close_reason)
+    end
+    self.raw:write(value)
+end
+
+function httpconnection:close(reason)
+    if not self.raw:is_keep_alive() then
+        self.raw:close(reason)
+    end
+    self.close_reason = reason
+end
+
+function httpconnection:is_alive()
+    return self.close_reason ~= nil
+end
+
+function httpconnection:set_keep_alive(enable)
+    self.raw:set_keep_alive(enable)
+end
+
+function httpconnection:require_wakeback()
+    if not self:is_alive() then
+        return false
+    else
+        return self.raw:require_wakeback()
+    end
+end
+
+function httpconnection:get_request()
+    local request = wait_for_request(self)
+    self.request_ready = request
+    return request
+end
+
+function httpconnection:after_http_respond()
+    self:close('http responded')
+end
+
+function httpconnection:is_keep_alive()
+    return self.raw:is_keep_alive()
+end
+
 return {
     request = build_request,
     response = build_response,
@@ -385,4 +444,5 @@ return {
     read_chunked_body = read_chunked_body,
     respond = respond,
     respond_on = respond_on,
+    connection = httpconnection,
 }
