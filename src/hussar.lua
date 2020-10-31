@@ -22,9 +22,7 @@ local powerlog = require "powerlog"
 local co = coroutine
 local insert = table.insert
 
-local function patch_connection(conn, patch)
-    return setmetatable(patch, { __index = conn })
-end
+local HTTPConnection = httputil.connection
 
 local function hussar_managing_thread(hussar)
     local logger = hussar.logger:create("managing_thread")
@@ -36,7 +34,7 @@ local function hussar_managing_thread(hussar)
         local current_time = hussar.time_provider()
         local managed_descriptors = hussar.managed_descriptors
         for i, ds in ipairs(managed_descriptors) do
-            local conn, promised_deadline, frame, binded_thread, raw_conn, conn_patch = table.unpack(ds)
+            local conn, promised_deadline, frame, binded_thread, raw_conn = table.unpack(ds)
             if not conn:is_keep_alive() and current_time > promised_deadline then
                 conn:close('timeout')
                 table.insert(remove_later_index, i)
@@ -87,11 +85,10 @@ end
 
 function hussar:add_connection(connection)
     local priframe = {}
-    local patch = {}
-    local patched_connection = patch_connection(connection, patch)
+    local patched_connection = HTTPConnection.new(connection)
     local promised_deadline = self.time_provider() + self.connection_timeout
     local newthread = self.handler(patched_connection, priframe, self.pubframe)
-    insert(self.managed_descriptors, {patched_connection, promised_deadline, priframe, newthread, connection, patch})
+    insert(self.managed_descriptors, {patched_connection, promised_deadline, priframe, newthread, connection})
 end
 
 local function start_managing_thread(...)
