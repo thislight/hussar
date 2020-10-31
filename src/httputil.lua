@@ -307,34 +307,30 @@ local function write_error_on(connection, status_code, body)
     })
 end
 
-local function wait_for_request(connection)
-    if connection.request_ready then
-        return connection.request_ready
-    end
-    local httph = wait_for_headers(connection)
+local function read_body(connection, headers)
     local body_buffer = {}
-    local h_content_length = headers.search(httph.headers, "Content-Length")
-    local h_transfer_encoding = headers.search(httph.headers, "Transfer-Encoding")
+    local h_content_length = headers.search(headers.headers, "Content-Length")
+    local h_transfer_encoding = headers.search(headers.headers, "Transfer-Encoding")
     if #h_content_length > 0 and #h_transfer_encoding >0 then
         write_error_on(connection, 400)
-        terr.errorT('http', 'request_read_error', 'both Content-Length and Transfer-Encoding found', {
-            raw = httph
+        terr.errorT('http', 'body_read', 'both Content-Length and Transfer-Encoding found', {
+            raw = headers
         })
     elseif #h_content_length > 0 then
         local read_length
         local values = utils.exact(h_content_length, 2)
         if not utils.all_equals(values, values[1]) then
             write_error_on(connection, 400)
-            terr.errorT('http', 'request_read_error', "multiple but unequal Content-Length", {
+            terr.errorT('http', 'body_read', "multiple but unequal Content-Length", {
                 values = values
             })
         else
             read_length = tonumber(values[1])
             if not read_length then
                 write_error_on(connection, 400)
-                terr.errorT('http', 'request_read_error', "Content-Length is NaN", {
+                terr.errorT('http', 'body_read', "Content-Length is NaN", {
                     got_value = tostring(read_length),
-                    raw = httph,
+                    raw = headers,
                 })
             end
         end
@@ -345,14 +341,34 @@ local function wait_for_request(connection)
             if stat then
                 write_error_on(connection, 400)
                 terr.errorT('http', 'request_read_error', e,{
-                    raw = httph
+                    raw = headers
                 })
             end
         end
     else
-        return httph
+        return nil, headers
     end
-    httph[1] = table.concat(body_buffer)
+    return table.concat(body_buffer), headers
+end
+
+local function wait_for_request(connection)
+    if connection.request_ready then
+        return connection.request_ready
+    end
+    local httph = wait_for_headers(connection)
+    local original_metatable = getmetatable(httph)
+    setmetatable(httph, {
+        __index = function(t, i)
+            if i == 1 then
+                t[1] = read_body(connection, httph)
+                return t[1]
+            elseif original_metatable.__index then
+                return original_metatable.__index(t, i)
+            else
+                return rawget(t, i)
+            end
+        end,
+    })
     return httph
 end
 
@@ -456,6 +472,7 @@ return {
     wait_for_request = wait_for_request,
     read_fixed_body = read_fixed_body,
     read_chunked_body = read_chunked_body,
+    read_body = read_body,
     respond = respond,
     respond_on = respond_on,
     connection = httpconnection,
