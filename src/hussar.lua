@@ -39,7 +39,10 @@ local function hussar_managing_thread(hussar)
                 conn:close('timeout')
                 table.insert(remove_later_index, i)
             elseif coroutine.status(binded_thread) == 'dead' then
-                if not conn:is_keep_alive() then conn:close("thread is dead") end
+                if not conn:is_keep_alive() then
+                    conn:close("thread is dead")
+                    raw_conn:close("thread is dead")
+                end
                 table.insert(remove_later_index, i)
             elseif not conn:is_alive() then
                 table.insert(remove_later_index, i)
