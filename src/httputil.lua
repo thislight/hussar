@@ -377,6 +377,7 @@ local httpconnection = {}
 function httpconnection.new(raw_conn)
     return setmetatable({
         raw = raw_conn,
+        recvlock = false,
     }, { __index = httpconnection })
 end
 
@@ -384,7 +385,15 @@ function httpconnection:read()
     if self.close_reason then
         terr.errorT('httpconnection', 'closed', self.close_reason)
     end
-    return self.raw:read()
+    if #self > 0 then
+        return table.remove(self, 1)
+    else
+        return self.raw:read()
+    end
+end
+
+function httpconnection:putback(value)
+    table.insert(value)
 end
 
 function httpconnection:write(value)
@@ -418,9 +427,14 @@ function httpconnection:require_wakeback()
 end
 
 function httpconnection:get_request()
+    self.recvlock = true
     local request = wait_for_request(self)
     self.request_ready = request
     return request
+end
+
+function httpconnection:request_required()
+    return not self.recvlock
 end
 
 function httpconnection:after_http_respond()
