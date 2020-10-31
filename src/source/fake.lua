@@ -140,6 +140,11 @@ end
 
 local fake_source = {
     hussars = {},
+    connections = {},
+    time_provider = function()
+        return os.time() * 1000
+    end,
+    timeout = 30,
     logger = powerlog:create("hussar.source.fake"),
 }
 
@@ -158,6 +163,7 @@ end
 
 function fake_source:push_connection(conn)
     for _, v in ipairs(self.hussars) do
+        table.insert(self.connections, conn)
         v:add_connection(conn)
     end
 end
@@ -174,10 +180,44 @@ function fake_source:create()
     return self:clone_to {}
 end
 
+local function fake_source_connection_manager(self)
+    local connections = self.connections
+    local time_provider = self.time_provider
+    local timeout = self.timeout
+    coroutine.yield()
+    while true do
+        away.wakeback_later()
+        local to_be_remove_indexs = {}
+        local current_time = time_provider()
+        for i, conn in ipairs(connections) do
+            if not conn:is_alive() then
+                table.insert(to_be_remove_indexs, i)
+            elseif not conn.last_scan_size then
+                conn.last_scan_size = #conn.buffer
+                conn.last_scan_time = time_provider()
+            else
+                if (conn.last_scan_size >= #conn.buffer) and (current_time - conn.last_scan_time > timeout) then
+                    conn:close("timeout")
+                    table.insert(to_be_remove_indexs, i)
+                end
+            end
+        end
+    end
+end
+
 function fake_source:prepare(hussar)
     table.insert(self.hussars, hussar)
     self.logger = hussar.logger:create("source.fake")
     self.logger:infof("attached")
+end
+
+function fake_source:start(hussar)
+    if not self.manager_thread then
+        local manager_thread = coroutine.create(fake_source_connection_manager)
+        self.manager_thread = manager_thread
+        coroutine.resume(manager_thread, self)
+        away.schedule_thread(manager_thread)
+    end
 end
 
 return fake_source
