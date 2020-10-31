@@ -99,6 +99,9 @@ end
 
 function hussar:start()
     assert(self.handler, "handler is not set")
+    for i,s in ipairs(self.sources) do
+        s:start(self)
+    end
     start_managing_thread(self)
 end
 
