@@ -420,6 +420,9 @@ function httpconnection:write(value)
 end
 
 function httpconnection:close(reason)
+    if self.raw.flush then
+        self.raw:flush()
+    end
     if not self.raw:is_keep_alive() then
         self.raw:close(reason)
     end
