@@ -3,6 +3,9 @@
 [![coverage report](https://gitlab.com/thislight/hussar/badges/master/coverage.svg)](https://gitlab.com/thislight/hussar/-/pipelines)  
 Toolkit, to go. Hussar is a powerful HTTP server toolkit.
 
+## Still in Preview Stage
+This library is still in preview stage, that means the library may have huge changes in future.
+
 ## Installation
 `luarocks install hussar`
 
