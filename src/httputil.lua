@@ -394,6 +394,8 @@ function httpconnection.new(raw_conn)
     return setmetatable({
         raw = raw_conn,
         recvlock = false,
+        request_ready = raw_conn.request_ready,
+        headers_ready = raw_conn.headers_ready,
     }, { __index = httpconnection })
 end
 
