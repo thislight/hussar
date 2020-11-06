@@ -362,10 +362,18 @@ local function wait_for_request(connection)
             if i == 1 then
                 t[1] = read_body(connection, httph)
                 return t[1]
-            elseif original_metatable.__index then
-                return original_metatable.__index(t, i)
             else
-                return rawget(t, i)
+                local value = rawget(t, i)
+                if not value then
+                    local index = original_metatable.__index
+                    if index then
+                        if type(index) == 'table' then
+                            return index[i]
+                        else
+                            return index(i)
+                        end
+                    end
+                end
             end
         end,
     })
