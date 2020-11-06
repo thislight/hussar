@@ -205,7 +205,7 @@ end
 function headers:get_first_of(key)
     local results = headers.search(self, key)
     if #results > 0 then
-        return results[1]
+        return results[1][2]
     else
         return nil
     end
@@ -214,7 +214,7 @@ end
 function headers:get_last_of(key)
     local results = headers.search(self, key)
     if #results > 0 then
-        return results[#results]
+        return results[#results][2]
     else
         return nil
     end
@@ -251,13 +251,12 @@ local function wait_for_headers(connection)
             httpdata.uri = pathetic:parse(httpdata.path)
             if not httpdata.headers then
                 httpdata.headers = {}
-            else
-                local header_connection = headers.get_last_of(httpdata.headers, "Connection")
-                if (header_connection and string.lower(header_connection) == "keep-alive") then
-                    connection:set_keep_alive(true)
-                elseif httpdata.minor_version == 1 and (string.lower(header_connection or '') ~= "close") then
-                    connection:set_keep_alive(true)
-                end
+            end
+            local header_connection = headers.get_last_of(httpdata.headers, "Connection")
+            if (header_connection and string.lower(header_connection) == "keep-alive") then
+                connection:set_keep_alive(true)
+            elseif httpdata.minor_version == 1 and (string.lower(header_connection or '') ~= "close") then
+                connection:set_keep_alive(true)
             end
             return httpdata
         elseif pret == -1 then
