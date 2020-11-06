@@ -385,9 +385,6 @@ end
 
 local function respond(connection, response_t)
     connection:write(build_response(response_t))
-    if not connection:is_keep_alive() then
-        connection:close()
-    end
 end
 
 local function respond_on(connection)
