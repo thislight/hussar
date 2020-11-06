@@ -72,16 +72,16 @@ insulate("hussar.source.fake", function()
     end)
 
     describe("fake_source", function()
-        it("call hussar's add_connection when new connection appeared", function()
+        it("call hussar's add_http_connection when new connection appeared", function()
             local source = fake:create()
-            local add_connection = mocks.callable()
+            local add_http_connection = mocks.callable()
             local fake_hussar = {
-                add_connection = add_connection.mock,
+                add_http_connection = add_http_connection.mock,
                 logger = source.logger,
             }
             source:prepare(fake_hussar)
             source:new_connection()
-            assert.equals(add_connection.called_count, 1)
+            assert.equals(add_http_connection.called_count, 1)
         end)
     end)
 end)
