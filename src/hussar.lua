@@ -56,12 +56,6 @@ local hussar = {
     pubframe = {
         debug = false,
     },
-    handler = function(conn, frame, pubframe)
-        httputil.respond_on(conn) {
-            status = 500,
-            "Gateway could not handle your request: missing handler. Hussar Web Server/Lua"
-        }
-    end,
     error_handler = function(conn, frame, pubframe)
         local msg = "Server Error"
         if pubframe.debug then
@@ -104,10 +98,10 @@ function hussar:run_handler(conn)
         local pubframe = self.pubframe
         conn.__binded_thread = current_thread
         optional_call(conn.__before_handler_run, conn, frame, pubframe)
-        local status, e = pcall_handler(hussar.handler, conn, frame, self.pubframe)
+        local status, e = pcall_handler(self.handler, conn, frame, self.pubframe)
         if not status then
             frame.error = e
-            local errhandler_stat, errhandler_e = pcall_handler(hussar.error_handler, conn, frame, self.pubframe)
+            local errhandler_stat, errhandler_e = pcall_handler(self.error_handler, conn, frame, self.pubframe)
             if not errhandler_stat then
                 self.logger:error("error handler error", nil, errhandler_e)
             end
