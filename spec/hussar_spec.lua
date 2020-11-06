@@ -11,14 +11,14 @@ describe("hussar", function()
 
     it("can build a server and play with fake_source correctly", function()
         local handler = mocks.callable(
-            wrap_thread(function(conn)
+            function(conn)
                 local request = httputil.wait_for_request(conn)
                 assert.equals(type(request), "table")
                 httputil.respond_on(conn) {
                     status = 200,
                     request.path
                 }
-            end)
+            end
         )
         local server = Hussar:create()
         local source = FakeSource:create()
@@ -26,6 +26,7 @@ describe("hussar", function()
             debugger:set_timeout(scheduler, 3)
             server:attach_source(source)
             server.handler = handler.mock
+            server.pubframe.debug = true
             scheduler:run_task(function()
                 local conn = source:add_request {
                     method = 'GET',
