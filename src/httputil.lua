@@ -456,7 +456,7 @@ function httpconnection:require_wakeback()
     if not self:is_alive() then
         return false
     else
-        return self:__require_wakeback()
+        return self.__require_wakeback(self.raw)
     end
 end
 
