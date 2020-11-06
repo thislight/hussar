@@ -72,6 +72,8 @@ insulate("hussar.source.fake", function()
     end)
 
     describe("fake_source", function()
+        local debugger = require "away.debugger"
+
         it("call hussar's add_http_connection when new connection appeared", function()
             local source = fake:create()
             local add_http_connection = mocks.callable()
@@ -83,5 +85,47 @@ insulate("hussar.source.fake", function()
             source:new_connection()
             assert.equals(add_http_connection.called_count, 1)
         end)
+
+        it(
+            "can reuse same connection with two requests for Connection: keep-alive (default in HTTP/1.1)",
+            debugger:wrapenv(function(scheduler, debugger)
+                debugger:set_timeout(scheduler, 2)
+                local hussar = require "hussar"
+                local httputil = require "hussar.httputil"
+                local source = fake:create()
+                local server = hussar:create()
+                server.pubframe.debug = true
+                server.handler = function(conn, frame, pubframe)
+                    local headers = httputil.wait_for_headers(conn)
+                    httputil.respond_on(conn) {
+                        status = 200,
+                        "Test"
+                    }
+                    conn:close()
+                end
+                server:attach_source(source)
+                scheduler:run_task(function()
+                    server:start()
+                end)
+                local reach = false
+                scheduler:run_task(function()
+                    local connection, server_side = source:new_connection()
+                    connection:write(httputil.request {
+                        method = 'GET',
+                        path = '/',
+                    })
+                    local result = connection:read_and_wait()
+                    assert.is.truthy(string.match(result, ".*Test.*"))
+                    connection:write(httputil.request {
+                        method = 'GET',
+                        path = '/',
+                    })
+                    assert.is.truthy(string.match(connection:read_and_wait(), ".*Test.*"))
+                    reach = true
+                    scheduler:stop()
+                end)
+                scheduler:run()
+                assert.is.True(reach)
+        end))
     end)
 end)
