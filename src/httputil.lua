@@ -442,7 +442,7 @@ function httpconnection:close(reason)
     if not self.raw:is_keep_alive() then
         self.raw:close(reason)
     end
-    self.close_reason = reason
+    self.close_reason = reason or 'closed'
 end
 
 function httpconnection:is_alive()
