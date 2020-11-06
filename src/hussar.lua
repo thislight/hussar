@@ -22,7 +22,9 @@ local powerlog = require "powerlog"
 local co = coroutine
 local insert = table.insert
 
-local HTTPConnection = httputil.connection
+local function pcall_handler(handler, conn, priframe, pubframe)
+    return pcall(handler, conn, priframe, pubframe)
+end
 
 local function hussar_managing_thread(hussar)
     local logger = hussar.logger:create("managing_thread")
@@ -31,41 +33,43 @@ local function hussar_managing_thread(hussar)
     while true do
         away.wakeback_later()
         local remove_later_index = {}
-        local current_time = hussar.time_provider()
-        local managed_descriptors = hussar.managed_descriptors
-        for i, ds in ipairs(managed_descriptors) do
-            local conn, promised_deadline, frame, binded_thread, raw_conn = table.unpack(ds)
-            if not conn:is_keep_alive() and current_time > promised_deadline then
-                conn:close('timeout')
-                table.insert(remove_later_index, i)
-            elseif coroutine.status(binded_thread) == 'dead' then
-                if not conn:is_keep_alive() then
-                    conn:close("thread is dead")
-                    raw_conn:close("thread is dead")
-                end
-                table.insert(remove_later_index, i)
-            elseif not conn:is_alive() then
-                table.insert(remove_later_index, i)
-            elseif binded_thread and conn:require_wakeback() then
-                away.schedule_thread(binded_thread)
+        local ipairs = ipairs
+        local managed_connections = hussar.managed_connections
+        for i, conn in ipairs(managed_connections) do
+            local thread = conn.__binded_thread
+            if not thread then
+                remove_later_index[#remove_later_index+1] = i
+            elseif co.status(thread) == 'dead' then
+                remove_later_index[#remove_later_index+1] = i
+            elseif conn:require_wakeback() then
+                away.schedule_thread(thread)
             end
         end
-        for _, index in ipairs(remove_later_index) do
-            table.remove(managed_descriptors, index)
+        for _, i in ipairs(remove_later_index) do
+            table.remove(managed_connections, i)
         end
     end
 end
 
 local hussar = {
-    managed_descriptors = {},
-    time_provider = function()
-        return os.time()
-    end,
-    pubframe = {},
+    managed_connections = {},
+    pubframe = {
+        debug = false,
+    },
     handler = function(conn, frame, pubframe)
         httputil.respond_on(conn) {
             status = 500,
             "Gateway could not handle your request: missing handler. Hussar Web Server/Lua"
+        }
+    end,
+    error_handler = function(conn, frame, pubframe)
+        local msg = "Server Error"
+        if pubframe.debug then
+            msg = string.format("Handler Error: \n%s",frame.error)
+        end
+        httputil.respond_on(conn) {
+            status = 500,
+            msg
         }
     end,
     sources = {},
@@ -86,12 +90,40 @@ function hussar:create()
     return self:clone_to {}
 end
 
-function hussar:add_connection(connection)
-    local priframe = {}
-    local patched_connection = HTTPConnection.new(connection)
-    local promised_deadline = self.time_provider() + self.connection_timeout
-    local newthread = self.handler(patched_connection, priframe, self.pubframe)
-    insert(self.managed_descriptors, {patched_connection, promised_deadline, priframe, newthread, connection})
+local function optional_call(f, ...)
+    if f then
+        return f(...)
+    end
+end
+
+function hussar:run_handler(conn)
+    away.schedule_task(function()
+        local frame = {}
+        local current_thread = away.get_current_thread()
+        frame.current_thread = current_thread
+        local pubframe = self.pubframe
+        conn.__binded_thread = current_thread
+        optional_call(conn.__before_handler_run, conn, frame, pubframe)
+        local status, e = pcall_handler(hussar.handler, conn, frame, self.pubframe)
+        if not status then
+            frame.error = e
+            local errhandler_stat, errhandler_e = pcall_handler(hussar.error_handler, conn, frame, self.pubframe)
+            if not errhandler_stat then
+                self.logger:error("error handler error", nil, errhandler_e)
+            end
+        end
+        optional_call(conn.__after_handler_run, conn, frame, pubframe)
+        conn.__binded_thread = nil
+    end)
+end
+
+function hussar:add_connection()
+    error("hussar:add_connection is deprecated and does not take any effect", 2)
+end
+
+function hussar:add_http_connection(connection)
+    self:run_handler(connection)
+    insert(self.managed_connections, connection)
 end
 
 local function start_managing_thread(...)
