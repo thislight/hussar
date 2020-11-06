@@ -374,9 +374,6 @@ end
 
 local function respond(connection, response_t)
     connection:write(build_response(response_t))
-    if connection.after_http_respond then
-        connection:after_http_respond(response_t)
-    end
     if not connection:is_keep_alive() then
         connection:close()
     end
@@ -390,13 +387,18 @@ end
 
 local httpconnection = {}
 
-function httpconnection.new(raw_conn)
+function httpconnection.new()
     return setmetatable({
-        raw = raw_conn,
-        recvlock = false,
-        request_ready = raw_conn.request_ready,
-        headers_ready = raw_conn.headers_ready,
+        wakeback_flag = false,
     }, { __index = httpconnection })
+end
+
+function httpconnection.applied(t)
+    local obj = httpconnection.new()
+    for k,v in pairs(t) do
+        obj[k] = v
+    end
+    return obj
 end
 
 function httpconnection:read()
@@ -406,7 +408,13 @@ function httpconnection:read()
     if #self > 0 then
         return table.remove(self, 1)
     else
-        return self.raw:read()
+        return self.__read(self.raw)
+    end
+end
+
+function httpconnection:flush()
+    if self.__flush then
+        self.__flush(self.raw)
     end
 end
 
@@ -418,13 +426,11 @@ function httpconnection:write(value)
     if self.close_reason then
         terr.errorT('httpconnection', 'closed', self.close_reason)
     end
-    self.raw:write(value)
+    self.__write(self.raw, value)
 end
 
 function httpconnection:close(reason)
-    if self.raw.flush then
-        self.raw:flush()
-    end
+    self:flush()
     if not self.raw:is_keep_alive() then
         self.raw:close(reason)
     end
@@ -443,23 +449,8 @@ function httpconnection:require_wakeback()
     if not self:is_alive() then
         return false
     else
-        return self.raw:require_wakeback()
+        return self.__require_wakeback()
     end
-end
-
-function httpconnection:get_request()
-    self.recvlock = true
-    local request = wait_for_request(self)
-    self.request_ready = request
-    return request
-end
-
-function httpconnection:request_required()
-    return not self.recvlock
-end
-
-function httpconnection:after_http_respond()
-    self:close('http responded')
 end
 
 function httpconnection:is_keep_alive()
