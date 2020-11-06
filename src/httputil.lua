@@ -15,10 +15,13 @@
 -- You should have received a copy of the GNU General Public License
 -- along with hussar.  If not, see <http://www.gnu.org/licenses/>.
 
+local away = require "away"
 local utils = require "hussar.utils"
 local lphr = require "lphr.r2"
 local pathetic = require "pathetic"
 local terr = require "hussar.terr"
+
+local get_current_thread = away.get_current_thread
 
 local function require_field(t, key)
     if t[key] == nil then
@@ -416,6 +419,7 @@ function httpconnection:read()
     if #self > 0 then
         return table.remove(self, 1)
     else
+        self.__binded_thread = get_current_thread()
         return self.__read(self.raw)
     end
 end
