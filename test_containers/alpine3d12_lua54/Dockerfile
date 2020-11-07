@@ -32,4 +32,6 @@ RUN luarocks install busted
 
 RUN luarocks install luacov
 
+RUN apk add zlib zlib-dev
+
 CMD sh -c "lua -v && luarocks --version && printf \"busted: \" && busted --version"

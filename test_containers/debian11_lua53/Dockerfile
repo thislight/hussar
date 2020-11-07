@@ -20,4 +20,6 @@ RUN bash /install_luarocks.sh
 RUN luarocks install busted
 RUN luarocks install luacov
 
+RUN apt install -y zlib1g-dev
+
 CMD sh -c "lua -v && luarocks --version && printf \"busted: \" && busted --version"
