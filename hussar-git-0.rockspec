@@ -15,6 +15,8 @@ dependencies = {
    "powerlog 0.1.0",
    "away-dataqueue 0.1.0",
    "lua-silva >=0.1.6, <0.2.0",
+   "lua-brotli >=1.0, <2.0",
+   "lua-zlib >=1.2, <2.0"
 }
 build = {
    type = "builtin",
