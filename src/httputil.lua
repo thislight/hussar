@@ -20,6 +20,8 @@ local utils = require "hussar.utils"
 local lphr = require "lphr.r2"
 local pathetic = require "pathetic"
 local terr = require "hussar.terr"
+local zlib = require "zlib"
+local br = require "brotli"
 
 local get_current_thread = away.get_current_thread
 
@@ -392,6 +394,83 @@ local function respond_on(connection)
     end
 end
 
+local function compress_gzip(data, options)
+    local level = options.level or 3
+    return zlib.deflate(level, 15+16)(data, "finish")
+end
+
+local function compress_inflate(data, options)
+    local level = options.level or 3
+    return zlib.deflate(level)(data, 'finish')
+end
+
+local function compress_br(data, options)
+    local broptions = {
+        quality = options.quality,
+    }
+    local mode = string.lower(options.mode)
+    if mode == 'generic' then
+        broptions.mode = br.MODE_GENERIC
+    elseif mode == 'text' then
+        broptions.mode = br.MODE_TEXT
+    elseif mode == 'font' then
+        broptions.mode = br.MODE_FONT
+    end
+    return br.compress(data, broptions)
+end
+
+local function compress_response(response, request_headers, compress_avaliables, options)
+    if not compress_avaliables then compress_avaliables = {} end
+    if not options then options = {} end
+    if not request_headers then request_headers = {} end
+    local client_accepted_encodings = headers.search(request_headers, 'Accept-Encoding')
+    local compress_used = 'identity'
+    local accepts_general = {
+        gzip = false,
+        br = false,
+        inflate = false,
+    }
+    local other_encoding
+    for _, header in ipairs(client_accepted_encodings) do
+        local encoding = string.lower(header[2])
+        if encoding == 'gzip'  or encoding == 'x-gzip' then
+            accepts_general.gzip = true
+        elseif encoding == 'br' then
+            accepts_general.br = true
+        elseif encoding == 'inflate' then
+            accepts_general.inflate = true
+        elseif encoding ~= 'identity' or encoding ~= 'compress' then
+            other_encoding = encoding
+        end
+    end
+    -- If the encoding is supported non-standardised encoding, use it in first
+    if other_encoding and compress_avaliables[other_encoding] then
+        compress_used = other_encoding
+    elseif accepts_general.br then
+        compress_used = 'br'
+    elseif accepts_general.gzip then
+        compress_used = 'gzip'
+    elseif accepts_general.inflate then
+        compress_used = 'inflate'
+    end
+    if compress_used == 'br' then
+        response['Content-Encoding'] = 'br'
+        response[1] = compress_br(response[1], options.br or {})
+    elseif compress_used == 'gzip' then
+        response['Content-Encoding'] = 'gzip'
+        response[1] = compress_gzip(response[1], options.gzip or {})
+    elseif compress_used == 'inflate' then
+        response['Content-Encoding'] = 'inflate'
+        response[1] = compress_inflate(response[1], options.inflate or {})
+    elseif other_encoding then
+        response['Content-Encoding'] = other_encoding
+        response[1] = compress_avaliables(response[1], options[other_encoding] or {})
+    else
+        response['Content-Encoding'] = compress_used
+    end
+    return response
+end
+
 local httpconnection = {}
 
 function httpconnection.new()
@@ -479,4 +558,5 @@ return {
     respond = respond,
     respond_on = respond_on,
     connection = httpconnection,
+    compress_response = compress_response,
 }
