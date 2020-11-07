@@ -444,7 +444,7 @@ local function compress_response(response, request_headers, compress_avaliables,
             accepts_general.br = true
         elseif encoding == 'inflate' then
             accepts_general.inflate = true
-        elseif encoding ~= 'identity' or encoding ~= 'compress' then
+        elseif encoding ~= 'identity' and encoding ~= 'compress' then -- "compress" method have no longer used, always use others (including identity) instead
             other_encoding = encoding
         end
     end
@@ -469,7 +469,7 @@ local function compress_response(response, request_headers, compress_avaliables,
         response[1] = compress_inflate(response[1], options.inflate or {})
     elseif other_encoding then
         response['Content-Encoding'] = other_encoding
-        response[1] = compress_avaliables(response[1], options[other_encoding] or {})
+        response[1] = compress_avaliables[other_encoding](response[1], options[other_encoding] or {})
     else
         response['Content-Encoding'] = compress_used
     end
