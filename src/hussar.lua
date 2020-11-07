@@ -101,6 +101,7 @@ function hussar:run_handler(conn)
         local status, e = pcall_handler(self.handler, conn, frame, self.pubframe)
         if not status then
             frame.error = e
+            self.logger:error("handler error", nil, e)
             local errhandler_stat, errhandler_e = pcall_handler(self.error_handler, conn, frame, self.pubframe)
             if not errhandler_stat then
                 self.logger:error("error handler error", nil, errhandler_e)
