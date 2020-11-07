@@ -408,18 +408,23 @@ local function compress_br(data, options)
     local broptions = {
         quality = options.quality,
     }
-    local mode = string.lower(options.mode)
-    if mode == 'generic' then
-        broptions.mode = br.MODE_GENERIC
-    elseif mode == 'text' then
-        broptions.mode = br.MODE_TEXT
-    elseif mode == 'font' then
-        broptions.mode = br.MODE_FONT
+    if options.mode then
+        local mode = string.lower(options.mode)
+        if mode == 'generic' then
+            broptions.mode = br.MODE_GENERIC
+        elseif mode == 'text' then
+            broptions.mode = br.MODE_TEXT
+        elseif mode == 'font' then
+            broptions.mode = br.MODE_FONT
+        end
     end
     return br.compress(data, broptions)
 end
 
 local function compress_response(response, request_headers, compress_avaliables, options)
+    if not response[1] then
+        return response
+    end
     if not compress_avaliables then compress_avaliables = {} end
     if not options then options = {} end
     if not request_headers then request_headers = {} end
@@ -467,6 +472,9 @@ local function compress_response(response, request_headers, compress_avaliables,
         response[1] = compress_avaliables(response[1], options[other_encoding] or {})
     else
         response['Content-Encoding'] = compress_used
+    end
+    if response['Content-Length'] then
+        response['Content-Length'] = #response[1]
     end
     return response
 end
