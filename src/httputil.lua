@@ -21,7 +21,10 @@ local lphr = require "lphr.r2"
 local pathetic = require "pathetic"
 local terr = require "hussar.terr"
 local zlib = require "zlib"
-local br = require "brotli"
+-- local br = require "brotli"
+local br
+-- The problem of using C++ with Lua. I repeatly got "luaopen_brotli" symbol not found in testing containers, though it works fine on my real machine Fedora 33.
+-- I have to remove br support for now until we can figure out the problem.
 
 local get_current_thread = away.get_current_thread
 
@@ -405,6 +408,7 @@ local function compress_inflate(data, options)
 end
 
 local function compress_br(data, options)
+    error("compress_br is unusable for now")
     local broptions = {
         quality = options.quality,
     }
@@ -432,7 +436,7 @@ local function compress_response(response, request_headers, compress_avaliables,
     local compress_used = 'identity'
     local accepts_general = {
         gzip = false,
-        br = false,
+        -- br = false,
         inflate = false,
     }
     local other_encoding
@@ -440,8 +444,8 @@ local function compress_response(response, request_headers, compress_avaliables,
         local encoding = string.lower(header[2])
         if encoding == 'gzip'  or encoding == 'x-gzip' then
             accepts_general.gzip = true
-        elseif encoding == 'br' then
-            accepts_general.br = true
+        -- elseif encoding == 'br' then
+        --     accepts_general.br = true
         elseif encoding == 'inflate' then
             accepts_general.inflate = true
         elseif encoding ~= 'identity' and encoding ~= 'compress' then -- "compress" method have no longer used, always use others (including identity) instead
