@@ -3,6 +3,7 @@ FROM debian:bullseye-slim
 RUN apt update
 RUN apt upgrade -y
 RUN apt install -y gcc
+RUN apt install -y g++
 RUN apt install -y unzip openssl busybox
 RUN apt install -y wget tar make
 RUN apt install -y libreadline-dev

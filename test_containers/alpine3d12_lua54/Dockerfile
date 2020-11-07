@@ -4,6 +4,7 @@ COPY ./enable_community_repo.sh /enable_community_repo.sh
 RUN sh /enable_community_repo.sh
 RUN apk update
 RUN apk add gcc
+RUN apk add g++
 
 RUN apk add make
 RUN apk add wget tar
