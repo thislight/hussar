@@ -2,13 +2,13 @@ local mocks = require "away.debugger.mocks"
 local lphrc = require "lphr.c"
 local Hussar = require "hussar"
 local FakeSource = require "hussar.source.fake"
-local br = require "brotli"
+local zlib = require "zlib"
 local debugger = require "away.debugger"
 
 describe("httputil", function()
     local httputil = require "hussar.httputil"
     describe("compress_response", function()
-        it("correctly compress response when client tells it supports br", function()
+        it("correctly compress response when client tells it supports gzip", function()
             local handler = mocks.callable(
             function(conn)
                 local request = httputil.wait_for_headers(conn)
@@ -30,15 +30,16 @@ describe("httputil", function()
                 local conn = source:add_request {
                     method = 'GET',
                     path = '/',
-                    ['Accept-Encoding'] = 'br',
+                    ['Accept-Encoding'] = 'gzip',
                 }
                 local result = conn:read_and_wait()
                 local pret, last_len, data
                 pret, last_len, data = lphrc.parse_response_r2(result, last_len)
                 assert.is.True(pret > 0, "fake_connection must always return the strings as it is")
-                assert.equals("br", httputil.headers.get_last_of(data.headers, 'Content-Encoding'))
+                assert.equals("gzip", httputil.headers.get_last_of(data.headers, 'Content-Encoding'))
                 local body = string.sub(result, pret+1)
-                local decompressed_body = br.decompress(body)
+                local s = zlib.inflate(15+16)
+                local decompressed_body = s(body)
                 assert.is.truthy(string.match(decompressed_body, "Test Playload"))
                 scheduler:stop()
             end)
