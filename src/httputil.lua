@@ -195,7 +195,7 @@ function headers.parse_mutliargs(header_or_string)
         value = header_or_string[2]
     end
     local result = {}
-    for s in string.gmatch(value, "%s*([%a%d]+)%s*,?") do
+    for s in string.gmatch(value, "%s*([%a%d%s%b\"\"%b'']+)%s*,?") do
         result[#result+1] = s
     end
     return result
@@ -457,7 +457,7 @@ local function compress_response(response, request_headers, compress_avaliables,
     local client_accepted_encoding_headers = headers.search(request_headers, 'Accept-Encoding')
     local client_accepted_encodings = {}
     for _, v in ipairs(client_accepted_encoding_headers) do
-        for s in string.gmatch(v[2], "([A-Za-z0-9]+)%w*,?%w*") do
+        for s in string.gmatch(v[2], "%s*([A-Za-z0-9]+)%s*,?") do
             client_accepted_encodings[#client_accepted_encodings+1] = s
         end
     end
