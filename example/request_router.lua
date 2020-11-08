@@ -58,7 +58,7 @@ local router = RequestHandler:create {
 server.handler = function(conn, frame, pubframe)
     local request = httputil.wait_for_request(conn)
     local user_handler = router:route(request, conn, frame, pubframe)
-    handler_auto_write(user_handler, conn)(request, frame, pubframe)
+    user_handler(request, frame, pubframe)
 end
 
 Scheduler:run_task(function()
