@@ -432,7 +432,13 @@ local function compress_response(response, request_headers, compress_avaliables,
     if not compress_avaliables then compress_avaliables = {} end
     if not options then options = {} end
     if not request_headers then request_headers = {} end
-    local client_accepted_encodings = headers.search(request_headers, 'Accept-Encoding')
+    local client_accepted_encoding_headers = headers.search(request_headers, 'Accept-Encoding')
+    local client_accepted_encodings = {}
+    for _, v in ipairs(client_accepted_encoding_headers) do
+        for s in string.gmatch(v[2], "([A-Za-z0-9]+)%w*,?%w*") do
+            client_accepted_encodings[#client_accepted_encodings+1] = s
+        end
+    end
     local compress_used = 'identity'
     local accepts_general = {
         gzip = false,
@@ -440,8 +446,8 @@ local function compress_response(response, request_headers, compress_avaliables,
         inflate = false,
     }
     local other_encoding
-    for _, header in ipairs(client_accepted_encodings) do
-        local encoding = string.lower(header[2])
+    for _, s in ipairs(client_accepted_encodings) do
+        local encoding = string.lower(s)
         if encoding == 'gzip'  or encoding == 'x-gzip' then
             accepts_general.gzip = true
         -- elseif encoding == 'br' then
