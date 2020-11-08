@@ -39,6 +39,8 @@ function RequestRouter:create(routes)
     return newobj
 end
 
+function RequestRouter.new(...) return RequestRouter:create(...) end
+
 function RequestRouter:add_routes(routes)
     for _, v in ipairs(routes) do
         local checker, handler = table.unpack(v)
