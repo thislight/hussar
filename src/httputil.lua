@@ -336,10 +336,10 @@ local function write_error_on(connection, status_code, body)
     })
 end
 
-local function read_body(connection, headers)
+local function read_body(connection, request)
     local body_buffer = {}
-    local h_content_length = headers.search(headers.headers, "Content-Length")
-    local h_transfer_encoding = headers.search(headers.headers, "Transfer-Encoding")
+    local h_content_length = headers.search(request.headers, "Content-Length")
+    local h_transfer_encoding = headers.search(request.headers, "Transfer-Encoding")
     if #h_content_length > 0 and #h_transfer_encoding >0 then
         write_error_on(connection, 400)
         terr.errorT('http', 'body_read', 'both Content-Length and Transfer-Encoding found', {
@@ -393,7 +393,7 @@ local function wait_for_request(connection)
                 return t[1]
             else
                 local value = rawget(t, i)
-                if not value then
+                if (not value) and original_metatable then
                     local index = original_metatable.__index
                     if index then
                         if type(index) == 'table' then
@@ -402,6 +402,8 @@ local function wait_for_request(connection)
                             return index(i)
                         end
                     end
+                else
+                    return nil
                 end
             end
         end,
