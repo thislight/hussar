@@ -54,12 +54,12 @@ local function handler_auto_write(handler, conn)
     end
 end
 
-server.handler = wrap_thread(function(conn, frame, pubframe)
+server.handler = function(conn, frame, pubframe)
     local request = httputil.wait_for_request(conn)
     local user_handler = router:route(request, conn, frame, pubframe)
     frame.connection = conn
     handler_auto_write(user_handler, conn)(request, frame, pubframe)
-end)
+end
 
 Scheduler:run_task(function()
     server:start()

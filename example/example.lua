@@ -10,7 +10,7 @@ server.logger.accept_level = 50
 local source = FakeSource:create()
 local wrap_thread = require "hussar.wrap_thread"
 
-server.handler = wrap_thread(function(conn, frame, pubframe)
+server.handler = function(conn, frame, pubframe)
     local request = httputil.wait_for_request(conn)
     print("---- Request in Table ----")
     print(debugger.topstring(request))
@@ -27,7 +27,7 @@ server.handler = wrap_thread(function(conn, frame, pubframe)
         }
         conn:close()
     end
-end)
+end
 
 server:attach_source(source)
 
