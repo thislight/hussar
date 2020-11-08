@@ -43,15 +43,21 @@ function RequestRouter.new(...) return RequestRouter:create(...) end
 
 function RequestRouter:add_routes(routes)
     for _, v in ipairs(routes) do
-        local checker, handler = table.unpack(v)
+        local checker, handler, wrappers = table.unpack(v)
         if type(checker) == 'string' then
             checker = checkers.PATH(checker)
+        end
+        local common_copy = wrapline.getcopy(self.wrapline)
+        if wrappers then
+            table.move(wrappers, 1, #wrappers, #common_copy+1, common_copy)
+            handler = wrapline.call(common_copy, handler)
         end
         table.insert(self.routes, {handler, checker})
     end
 end
 
 function RequestRouter:route(request, conn, frame, pubframe)
+    frame.connection = conn
     for i, v in ipairs(self.routes) do
         local handler, checker = table.unpack(v)
         if checker(request, frame) then
