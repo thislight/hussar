@@ -27,6 +27,7 @@ build = {
       ['hussar.request_router.checkers'] = "src/request_router/checkers.lua",
       ['hussar.request_router.auto_write'] = "src/request_router/auto_write.lua",
       ['hussar.request_router.method_picker'] = "src/request_router/method_picker.lua",
+      ['hussar.request_router.tools'] = "src/request_router/tools.lua",
       ['hussar.utils'] = "src/utils.lua",
       ['hussar.wrap_thread'] = "src/wrap_thread.lua",
       ['hussar.terr'] = "src/terr.lua",
