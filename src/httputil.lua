@@ -176,7 +176,29 @@ end
 local headers = {}
 
 function headers:clone_to(new_t)
-    utils.table_deep_copy(self, new_t)
+    return setmetatable(new_t, headers.__META)
+end
+
+headers.__META = {
+    __index = headers
+}
+
+function headers.new()
+    return setmetatable({}, headers.__META)
+end
+
+function headers.parse_mutliargs(header_or_string)
+    local value
+    if type(header_or_string) == 'string' then
+        value = header_or_string
+    else
+        value = header_or_string[2]
+    end
+    local result = {}
+    for s in string.gmatch(value, "%s*([%a%d]+)%s*,?") do
+        result[#result+1] = s
+    end
+    return result
 end
 
 function headers:add(key, value)
