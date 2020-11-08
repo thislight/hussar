@@ -36,7 +36,7 @@ describe("hussar.request_router", function()
                     {'/test$', mock_handler1.mock},
                     {'/amdyes$', mock_handler2.mock}
                 })
-            local result = router:route(fake_request)
+            local result = router:route(fake_request, {}, {}, {})
             assert.equals(mock_handler1.mock, result)
             assert.is_not.equals(mock_handler2, result)
         end)
