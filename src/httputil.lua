@@ -115,6 +115,8 @@ end
 
 local response_status2code_table = get_response_status2code_table()
 
+local headers = {}
+
 local function build_request(t)
     require_field(t, 'method')
     require_field(t, 'path')
@@ -127,11 +129,12 @@ local function build_request(t)
         t['Content-Type'] = 'plain/text'
     end
     table.insert(result_t, string.format("%s %s HTTP/1.%d", string.upper(t.method), t.path, t.minor_version))
-    for k, v in pairs(t) do
-        if not (k == 'method' or k == 'path' or k == 'minor_version') then
-            table.insert(result_t, string.format("%s: %s", k, v))
-        end
-    end
+    local user_headers = headers.build_headers(
+        t,
+        function(k) return not (k == 'method' or k == 'path' or k == 'minor_version') end,
+        function(k, v) return string.format("%s: %s", k, v) end
+    )
+    table.move(user_headers, 1, #user_headers, #result_t+1, result_t)
     table.insert(result_t, "")
     if #t > 0 then
         local transfer_encoding = t['Transfer-Encoding']
@@ -146,6 +149,10 @@ local function build_request(t)
 end
 
 local function build_response(t)
+    local ipairs = ipairs
+    local format = string.format
+    local lower = string.lower
+    local insert = table.insert
     require_field(t, 'status')
     t.minor_version = t.minor_version or 1
     if not (t['Content-Length'] and t['Transfer-Encoding']) then
@@ -154,26 +161,25 @@ local function build_response(t)
         end
     end
     local result_t = {}
-    table.insert(result_t, string.format("HTTP/1.%d %s %s", t.minor_version, t.status, response_code2status_table[t.status]))
-    for k, v in pairs(t) do
-        if (not tonumber(k)) and (not (k == 'status' or k == 'minor_version')) then
-            table.insert(result_t, string.format("%s: %s", k, v))
-        end
-    end
-    table.insert(result_t, "")
+    insert(result_t, format("HTTP/1.%d %s %s", t.minor_version, t.status, response_code2status_table[t.status]))
+    local user_headers = headers.build_headers(
+        t,
+        function(k) return (not tonumber(k)) and (not (k == 'status' or k == 'minor_version')) end,
+        function(k ,v) return format("%s: %s", k, v) end
+    )
+    table.move(user_headers, 1, #user_headers, #result_t+1, result_t)
+    insert(result_t, "")
     if #t > 0 then
         local transfer_encoding = t['Transfer-Encoding']
-        if transfer_encoding and string.lower(transfer_encoding) == 'chunked' then
-            table.insert(result_t, tostring(#t[1]))
+        if transfer_encoding and lower(transfer_encoding) == 'chunked' then
+            insert(result_t, tostring(#t[1]))
         end
-        table.insert(result_t, t[1])
+        insert(result_t, t[1])
     else
-        table.insert(result_t, "") -- an empty line is required to end the headers
+        insert(result_t, "") -- an empty line is required to end the headers
     end
     return table.concat(result_t, "\r\n")
 end
-
-local headers = {}
 
 function headers:clone_to(new_t)
     return setmetatable(new_t, headers.__META)
@@ -247,6 +253,11 @@ function headers:get_last_of(key)
     end
 end
 
+function headers:get_all_of(key)
+    local results = headers.search(self, key)
+    return utils.exact(results, 2)
+end
+
 function headers:each()
     local iter = ipairs(self)
     return coroutine.wrap(function()
@@ -261,6 +272,24 @@ end
 
 function headers:get(key)
     return table.concat(headers.search(self, key), ',')
+end
+
+function headers.build_headers(t, filter, mapping)
+    filter = filter or function() return true end
+    mapping = mapping or function(k, v) return {k, v} end
+    local result = {}
+    for k, v in pairs(t) do
+        if filter(k, v) then
+            if type(v) == 'table' then
+                for _, value in ipairs(v) do
+                    result[#result+1] = mapping(k, value)
+                end
+            else
+                result[#result+1] = mapping(k, v)
+            end
+        end
+    end
+    return result
 end
 
 local function wait_for_headers(connection)
