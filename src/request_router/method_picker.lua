@@ -5,10 +5,17 @@ local build_options_response = tools.build_options_response
 
 return function(options)
     local supported_methods = {}
+    local has_option = false
     for k, _ in pairs(options) do
         if k ~= 'default' then
             supported_methods[#supported_methods+1] = k
+            if k == 'options' then
+                has_option = true
+            end
         end
+    end
+    if not has_option then
+        supported_methods[#supported_methods+1] = 'options'
     end
     return function(request, frame, ...)
         local method = lower(request.method)
