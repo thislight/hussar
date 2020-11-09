@@ -91,12 +91,17 @@ end
 local function cors_wrapper(options)
     return function(handler)
         return function(request, frame, pubframe)
-            if is_cors_request(request) then
+            if is_cors_request(request) and cors_accept(request, options) then
                 local response = handler(request, frame, pubframe)
                 return cors_control(response, options, request)
-            else
+            elseif options.error_handler then
                 local response = options.error_handler(request, frame, pubframe)
                 return cors_control(response, options, request)
+            else
+                return cors_control({
+                    status = 400,
+                    "CORS Error"
+                }, options, request)
             end
         end
     end
