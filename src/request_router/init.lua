@@ -15,13 +15,12 @@
 -- You should have received a copy of the GNU General Public License
 -- along with hussar.  If not, see <http://www.gnu.org/licenses/>.
 
-local wrap_thread = require "hussar.wrap_thread"
 local httputil = require "hussar.httputil"
 local utils = require "hussar.utils"
 local wrapline = require "hussar.wrapline"
 local powerlog = require "powerlog"
-local terr = require "hussar.terr"
 local checkers = require "hussar.request_router.checkers"
+local auto_write = require "hussar.request_router.auto_write"
 
 local RequestRouter = {
     routes = {},
@@ -32,9 +31,11 @@ function RequestRouter:clone_to(t)
     return utils.table_deep_copy(self, t)
 end
 
-function RequestRouter:create(routes)
+function RequestRouter:create(routes, default_wrapline)
     local newobj = self:clone_to {}
     newobj.wrapline = wrapline.create()
+    default_wrapline = default_wrapline or {auto_write}
+    table.move(default_wrapline, 1, #default_wrapline, #newobj.wrapline+1, newobj.wrapline)
     newobj:add_routes(routes or {})
     return newobj
 end
@@ -50,8 +51,8 @@ function RequestRouter:add_routes(routes)
         local common_copy = wrapline.getcopy(self.wrapline)
         if wrappers then
             table.move(wrappers, 1, #wrappers, #common_copy+1, common_copy)
-            handler = wrapline.call(common_copy, handler)
         end
+        handler = wrapline.call(common_copy, handler)
         table.insert(self.routes, {handler, checker})
     end
 end
