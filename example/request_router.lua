@@ -34,25 +34,13 @@ local Debugger = require "away.debugger"
 -- local watchers = Debugger:set_default_watchers(Scheduler)
 -- Debugger:unset_default_watchers(Scheduler, {before_run_step=watchers.before_run_step})
 
-local function handler_auto_write(handler)
-    return function(request, frame, pubframe)
-        local result = handler(request, frame, pubframe)
-        local conn = frame.connection
-        if result then
-            conn:write(httputil.response(result))
-        elseif not conn:is_keep_alive() and conn:is_alive() then
-            conn:close()
-        end
-    end
-end
-
 local router = RequestHandler:create {
     {'/$', function(request, frame, pubframe)
         return {
             status = 200,
             "Hello World"
         }
-    end, {handler_auto_write}}
+    end}
 }
 
 server.handler = function(conn, frame, pubframe)
