@@ -69,10 +69,21 @@ local function exact(t, key)
     return new_table
 end
 
+local function filter(t, fn)
+    local result = {}
+    for i,v in ipairs(t) do
+        if fn(v, i, t) then
+            result[#result+1] = v
+        end
+    end
+    return result
+end
+
 return {
     table_deep_copy = table_deep_copy,
     yield_wakeback = yield_wakeback,
     hold_until = hold_until,
     all_equals = all_equals,
     exact = exact,
+    filter = filter,
 }
