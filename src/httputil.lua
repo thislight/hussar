@@ -270,6 +270,17 @@ function headers:each()
     end)
 end
 
+function headers.insert2response(response, key, value)
+    local origin_value = response[key]
+    if origin_value == nil then
+        response[key] = value
+    elseif type(origin_value) == 'table' then
+        table.insert(origin_value, value)
+    else
+        response[key] = {origin_value, value}
+    end
+end
+
 function headers:get(key)
     return table.concat(headers.search(self, key), ',')
 end
