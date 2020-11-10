@@ -47,3 +47,5 @@ They are just environments, you still need cloning files and running `luarocks m
 ## License
 GNU General Public License, version 3 or later.  
 Tips: you can include this library for online service without open source. this is not a legal advice.
+
+The content under subdirectory 'teal-types' is using Apache License, version 2.0 (https://www.apache.org/licenses/LICENSE-2.0)
