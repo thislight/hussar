@@ -1,4 +1,4 @@
-describe("hussar.checkers", function()
+describe("hussar.request_router.checkers", function()
     local away = require "away"
     local debugger = require "away.debugger"
     local RequestRouter = require "hussar.request_router"
@@ -62,4 +62,60 @@ describe("hussar.request_router", function()
             assert.are.same({status = 404}, result)
         end)
     end)
+end)
+
+describe("hussar.request_router.method_picker", function()
+    local away = require "away"
+    local debugger = require "away.debugger"
+    local hussar = require "hussar"
+    local method_picker = require "hussar.request_router.method_picker"
+    local fake_source = require "hussar.source.fake"
+    local RequestRouter = require "hussar.request_router"
+    
+    it("can pick correct method depends on request", debugger:wrapenv(function(scheduler, debugger)
+        debugger:set_timeout(scheduler, 3)
+        local server = hussar:create()
+        local source = fake_source:create()
+        server:attach_source(source)
+        local home_handler = method_picker {
+            get = function(request, frame, pubframe)
+                return {
+                    status = 200,
+                    "GET"
+                }
+            end,
+            post = function(request, frame, pubframe)
+                return {
+                    status = 200,
+                    "POST"
+                }
+            end,
+        }
+        local router = RequestRouter.new({
+            {'/', home_handler}
+        })
+        server.handler = router:make_handler()
+
+        scheduler:run_task(function()
+            server:start()
+        end)
+
+        scheduler:run_task(function()
+            local cli_conn = source:add_request {
+                method = 'GET',
+                path = '/',
+            }
+            local result0 = cli_conn:read_and_wait()
+            assert.is.truthy(string.match(result0, "GET"))
+            local cli_conn1 = source:add_request {
+                method = 'POST',
+                path = '/'
+            }
+            local result1 = cli_conn1:read_and_wait()
+            assert.is.truthy(string.match(result1, "POST"))
+            scheduler:stop()
+        end)
+
+        scheduler:run()
+    end))
 end)
