@@ -364,7 +364,7 @@ local function read_chunked_body(connection, buffer)
     if not string.match(buffer[#buffer], "\r\n") then
         local endmark = connection:read()
         if endmark ~= "\r\n" then
-            return -1, "chunk do not end correctly"
+            return -1, "chunk do not end correctly" -- TODO: use terr instead
         end
     end
 end
@@ -417,7 +417,7 @@ local function read_body(connection, request)
     else
         return nil, headers
     end
-    return table.concat(body_buffer), headers
+    return table.concat(body_buffer), headers -- TODO: remove return 'headers', which linked to the headers library
 end
 
 local function wait_for_request(connection)
