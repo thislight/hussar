@@ -104,13 +104,66 @@ local function build_request(t: table): string end
     The way of key-values treatment is same as `build_request`.
     The first element will be the body of response.
     If Tranfser-Encoding and Content-Length are not presented, a Content-Length will be set by the length of the body if body exists.
-    If Tranfer-Encoding is "chunked", a length will be inserted just before content as a chunk.
+    If Tranfer-Encoding is "chunked", a length of body will be inserted just before content as a chunk.
 ]]
 local function build_response(t: table): string end
 
 local response_status2code: {string: number}
 local response_code2status: {number: string}
 local default_methods: {string}
+
+local type HTTPHeader = {string}
+
+local record headers
+    {HTTPHeader}
+end
+
+function headers:clone_to(new_t: table): headers end
+
+function headers.new(): headers end
+
+--[[
+    Parse mutli-value value which sperated by ','.
+]]
+function headers.parse_mutliargs(header_or_string: string | HTTPHeader): {string} end
+
+function headers:add(key:string, value:string): nil end
+
+function headers:search_with_index(key: string): {number} end
+
+function headers:search(key: string): {HTTPHeader} end
+
+function headers:remove(index: number): HTTPHeader end
+
+function headers:get_first_of(key: string): string end
+
+function headers:get_last_of(key: string): string end
+
+function headers:get_all_of(key: string): {string} end
+
+function headers:each(key): (function(): string, string, number) end
+
+function headers.insert2response(response: table, key: string, value: string): nil end
+
+function headers:get(key: string): string end
+
+function headers.build_headers<R>(t: {HTTPHeader}, filter: (function(string, string): boolean), mapping: (function(string, string): R)): {R} end
+
+local function wait_for_headers(connection: HTTPConnection): table end
+
+local function read_fixed_body(connection: HTTPConnection, buffer: {any}, length: number): nil end
+
+local function read_chunked_body(connection: HTTPConnection, buffer: {any}): nil end
+
+local function read_body(connection: HTTPConnection, request: table): string end
+
+local function wait_for_request(connection: HTTPConnection): table end
+
+local function respond(connection: HTTPConnection, response: table): nil end
+
+local function respond_on(connection:HTTPConnection): (function(response: table): nil) end
+
+local function compress_response(response: table, request_headers: {HTTPHeader}, compress_avaliables: {string: (function(string): string)}, options: {string: table}): table end
 
 return {
     connection = HTTPConnection,
@@ -119,4 +172,13 @@ return {
     status2code = response_status2code,
     code2status = response_code2status,
     default_methods = default_methods,
+    headers = headers,
+    wait_for_headers = wait_for_headers,
+    wait_for_request = wait_for_request,
+    read_body = read_body,
+    read_chunked_body = read_chunked_body,
+    read_fixed_body = read_fixed_body,
+    respond = respond,
+    respond_on = respond_on,
+    compress_response = compress_response,
 }
