@@ -22,6 +22,8 @@ local powerlog = require "powerlog"
 local checkers = require "hussar.request_router.checkers"
 local auto_write = require "hussar.request_router.auto_write"
 
+local wait_for_request = httputil.wait_for_request
+
 local RequestRouter = {
     routes = {},
     logger = powerlog:create("hussar.request_router"),
@@ -75,6 +77,13 @@ function RequestRouter.not_found_error_handler(request, conn)
         status = 404,
         string.format("404 Not Found: %s", request.path)
     })
+end
+
+function RequestRouter:make_handler()
+    return function(conn, frame, pub)
+        local request = wait_for_request(conn)
+        return self:route(request, conn, frame, pub)(request, frame, pub)
+    end
 end
 
 return RequestRouter
