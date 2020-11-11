@@ -44,7 +44,7 @@ end
 
 local function map(fn, t)
     local result = {}
-    for i=1,#result do
+    for i=1,#t do
         result[i] = fn(t[i])
     end
     return result
