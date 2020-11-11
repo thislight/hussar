@@ -71,6 +71,7 @@ describe("hussar.request_router.method_picker", function()
     local method_picker = require "hussar.request_router.method_picker"
     local fake_source = require "hussar.source.fake"
     local RequestRouter = require "hussar.request_router"
+    local httputil = require "hussar.httputil"
     
     it("can pick correct method depends on request", debugger:wrapenv(function(scheduler, debugger)
         debugger:set_timeout(scheduler, 3)
@@ -97,22 +98,76 @@ describe("hussar.request_router.method_picker", function()
         server.handler = router:make_handler()
 
         scheduler:run_task(function()
-            server:start()
-        end)
-
-        scheduler:run_task(function()
-            local cli_conn = source:add_request {
-                method = 'GET',
-                path = '/',
-            }
+            local cli_conn = source:add_request{method = 'GET', path = '/'}
             local result0 = cli_conn:read_and_wait()
             assert.is.truthy(string.match(result0, "GET"))
-            local cli_conn1 = source:add_request {
-                method = 'POST',
-                path = '/'
-            }
+            local cli_conn1 = source:add_request{method = 'POST', path = '/'}
             local result1 = cli_conn1:read_and_wait()
             assert.is.truthy(string.match(result1, "POST"))
+            scheduler:stop()
+        end)
+
+        scheduler:run()
+    end))
+
+    local lphrc = require "lphr.c"
+
+    local function parse_response(s)
+        local pret, last_len, data = lphrc.parse_response_r2(s, nil)
+        return data, pret
+    end
+
+    it("can set correct CORS headers if _CORS set 'all'",
+       debugger:wrapenv(function(scheduler, debugger)
+        debugger:set_timeout(scheduler, 3)
+        local server = hussar:create()
+        local source = fake_source:create()
+        server:attach_source(source)
+        local home_handler = method_picker {
+            _CORS = "all",
+            post = function(request, frame, pubframe)
+                return {status = 200, "POST"}
+            end
+        }
+        local router = RequestRouter.new({{'/', home_handler}})
+        server.handler = router:make_handler()
+
+        scheduler:run_task(function() server:start() end)
+
+        scheduler:run_task(function()
+            do
+                local cli_conn = source:add_request{
+                    method = 'OPTIONS',
+                    path = '/',
+                    Origin = "example.com"
+                }
+                local result = cli_conn:read_and_wait()
+                local response, pret = parse_response(result)
+                assert(pret > 0)
+                assert.equals("POST,OPTIONS", httputil.headers.get_last_of(
+                                  response.headers,
+                                  "Access-Control-Allow-Methods"))
+                assert.equals("*", httputil.headers.get_last_of(
+                                  response.headers,
+                                  "Access-Control-Allow-Origin"))
+            end
+            do
+                local cli_conn = source:add_request{
+                    method = 'POST',
+                    path = '/',
+                    Origin = "example.com"
+                }
+                local result = cli_conn:read_and_wait()
+                local response, pret = parse_response(result)
+                assert(pret > 0)
+                assert.is.truthy(string.match(result, "POST"))
+                assert.equals("POST,OPTIONS", httputil.headers.get_last_of(
+                                  response.headers,
+                                  "Access-Control-Allow-Methods"))
+                assert.equals("*", httputil.headers.get_last_of(
+                                  response.headers,
+                                  "Access-Control-Allow-Origin"))
+            end
             scheduler:stop()
         end)
 
