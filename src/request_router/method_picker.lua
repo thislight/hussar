@@ -1,4 +1,3 @@
-local respond = require('hussar.httputil').respond
 local tools = require 'hussar.request_router.tools'
 local lower = string.lower
 local build_options_response = tools.build_options_response
@@ -24,7 +23,7 @@ return function(options)
             if options.options then
                 return options.options(request, ...)
             else
-                respond(frame.connection, build_options_response(supported_methods))
+                return build_options_response(supported_methods)
             end
         elseif options[method] then
             return options[method](request, ...)
