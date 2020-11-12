@@ -28,10 +28,8 @@ local co = coroutine
 
 local server = hussar:create()
 server.handler = function(conn, frame, pubframe)
-    return co.create(function()
-        conn:write("HTTP/1.1 200 OK\r\n\r\n")
-        conn:close()
-    end)
+    conn:write("HTTP/1.1 200 OK\r\n\r\n")
+    conn:close()
 end
 
 local source = fake_source:create()
@@ -47,15 +45,17 @@ When you use `:run()`, it starts a thread we called "managing thread". Managing 
 
 Then, when a new connection come from any "source" (you attach it to hussar instance by `:attach_source()`), the source will call `:add_connection()` of hussar instance.
 ````
-source get new connection -> hussar instance's :add_connection(new_connection) -> call handler (handler may return a thread) -> save descriptor
+source get new connection -> hussar instance's :add_connection(new_connection) -> call handler in executor -> set the connection managed
 ````
-A descriptor include the connection, the deadline, the binded thread related to the connection (return by handler) and the related frame (saves user values).
 
-Managing thread will scan the descriptors in each turn of scheduler's loop, wakeback the thread if connection need a wakeback (`connection:require_wakeback()`) and maintain the descriptors' list when is needed.
+Managing thread will walkthough the managed connections in each turn of scheduler's loop, wakeback the thread if connection need a wakeback (`connection:require_wakeback()`) and maintain the managed connections' list when is needed.
 
-Notice: managing thread only can wakeback the binded thread which included in descriptor, if you need to read something from connection out of hussar, `connection:read_and_wait()` will wakeback repeatly and check until the connection has data to return. `connection:read()` just yield and wait for wakeback from managing thread.
+Notice: managing thread only can wakeback the binded thread which binded to connection (`__binded_thread` can set automatically or manually. Hussar will set it to the executor thread when calling handler for one connection and set to `nil` when the running is end). Ff you need to read something from connection out of hussar, `connection:read_and_wait()` will wakeback repeatly and check until the connection has data to return. `connection:read()` just yield and wait for wakeback from managing thread.
 
-In most cases, managing thread will manage connection correctly, but sources can still do something on connection by themselves.
+In most cases, managing thread just do the most part of things on the HTTPConnections, sources should still do something on the raw connections by themselves:
+
+- Close raw connections if it's opened but no activities for a while
+- Walkthough inactive keep-alive connections, add to hussar when new data is recviced.
 
 ## HTTPUtil: HTTP Toolkit
 Hussar does not provide a "must use" implementation of HTTP, but there is a default library to deal with HTTP connection. It's `hussar.httputil`.
@@ -74,6 +74,57 @@ Under this namespace:
 - respond
 - respond_on
 
-If you want to get a http request from a connection, you will use `wait_for_request`. It uses `connection:read()` to read strings from connection and parse them as http protocol described.
+If you want to get a http request from a connection, you will use `wait_for_request`. It uses `connection:read()` to read strings from connection and parse them as http protocol described. `wait_for_request` is partical lazy: it only read body (by `request[1]`) when you actually need it. It provide this functionality by metatable, so it may cause performance problem when you are in heavy traffic.
+
+If you just need headers (everything but body), `wait_for_headers` it's a good choice.
+
+The results of `wait_for_request` and `wait_for_headers` are familiar:
+````lua
+{
+    method = "GET",
+    path = "/",
+    minor_version = 1,
+    headers = {
+        {"X-Request", "GET, POST"},
+        {"X-Powered-By", "Hussar/Lua"},
+    },
+    "This is body", -- (only exists when using `wait_for_request`)
+}
+````
+
+`read_body` helps you read complete body. (You also can read body from connection by youself)
+
+`request` and `response` can help you build HTTP request and response in HTTP/1.0 and HTTP/1.1 style.
+
+````lua
+local function handler(request, frame, pub)
+    return httputil.response {
+        status = 200,
+        "Happy",
+    }
+end
+````
+
+`headers` is a small library to deal with headers.
+````lua
+-- request is a HTTP request get from wait_for_headers
+local etag = headers.get_last_of(request.headers, "ETag")
+local accepted_content_type = headers.search(request.headers, "Accept-Content-Type")
+
+local response = {
+    status = 200,
+}
+headers.insert2response(response, "Non-Accept-CPU-band", "Intel Core")
+header.insert2response(response, "Non-Accept-CPU-band", "Apple M1")
+````
+
+After doing anything, you must `respond` on connection. `respond_on` is a pretty hand of `respond`.
+````lua
+respond(conn, { status=200 })
+respond_on(conn) {
+    status = 200,
+    "body"
+}
+````
 
 (TBD...)
