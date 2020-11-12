@@ -18,7 +18,6 @@
 local away = require "away"
 local utils = require "hussar.utils"
 local httputil = require "hussar.httputil"
-local Dataqueue = require "away.dataqueue"
 local powerlog = require "powerlog"
 local terr = require "hussar.terr"
 
