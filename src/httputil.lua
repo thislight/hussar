@@ -452,7 +452,11 @@ local function wait_for_request(connection)
 end
 
 local function respond(connection, response_t)
-    connection:write(build_response(response_t))
+    if connection.write_response then
+        connection:write_response(response_t)
+    else
+        connection:write(build_response(response_t))
+    end
 end
 
 local function respond_on(connection)
