@@ -1,6 +1,7 @@
 local tools = require 'hussar.request_router.tools'
 local lower = string.lower
 local build_options_response = tools.build_options_response
+local respond = require('hussar.httputil').respond
 
 return function(options)
     local supported_methods = {}
