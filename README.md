@@ -12,12 +12,15 @@ This library is still in preview stage, that means the library may have huge cha
 ## Package Structure
 - `hussar` is core library to help managing connections.
 - `hussar.httputil` contains set of helpers to deal with http connection.
-- `hussar.source.fake` keeps a "source" (of connections), but it can set up new connection, which is not created by real clients, by programming.
+- `hussar.source.fake` keeps a "source" (of connections), but it can set up new connections which is not created by real clients but programming.
 - `hussar.wrapline` is a small library helping to wrap a function by a set of functions ("wrappers")
 - `hussar.wrap_thread` is a function to help you wrap the handler for hussar to run in a new thread for every called
 - `hussar.terr` is a small library to create errors are friendly to both code and human
 - `hussar.request_router` can route the request to different handlers by checkers, which checks request and private frame and tell router if one handler to be called
 - `hussar.request_router.checkers` is a small library keeps functions to create new checkers or to use provided checkers. Provided checkers: HOST, PATH, CUSTOM, HOST_AND_PATH.
+- `hussar.request_router.method_picker` is handler generater helps you handle HTTP methods and CORS.
+- `hussar.request_router.auto_write` is a wrapper to automatically write the return value from hanlder. It's default added by request router
+- `hussar.request_router.tools` some tools about CORS and OPTIONS method response.
 
 ## Documents
 
